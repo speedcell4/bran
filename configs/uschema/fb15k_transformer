@@ -14,7 +14,6 @@ export fb15k_dir=${TF_USCHEMA_ROOT}/data/FB15K/raw-text/
 export logdir=$LOG_DIR
 export optimizer=adam
 export model_type=classifier
-export embeddings=/iesl/data/embeddings/glove/glove.6B.100d.txt
 
 export bidirectional=True
 # export in_memory=True
@@ -59,7 +58,7 @@ export neg_noise=.20
 export kb_pretrain=500
 export kb_epochs=100000
 export text_epochs=100000
-export eval_every=7500
+export eval_every=75000
 export max_seq=2000
 export neg_samples=200
 export random_seed=1111

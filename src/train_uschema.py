@@ -95,6 +95,10 @@ def train_model(model, pos_dist_supervision_batcher, neg_dist_supervision_batche
                 if mrr > best_score:
                     decrease_epochs = 0
                     best_score = mrr
+                else:
+                    decrease_epochs += 1
+                    print('\nEval decreased for %d epochs out of %d max epochs. Best: %2.2f\n'
+                          % (decrease_epochs, max_decrease_epochs, best_score))
                 if save_path:
                     saved_path = saver.save(sess, save_path)
                     print("Serialized model: %s" % saved_path)
@@ -580,7 +584,7 @@ if __name__ == '__main__':
     tf.app.flags.DEFINE_integer('eval_every', 10000, 'eval every k steps')
     tf.app.flags.DEFINE_integer('max_steps', -1, 'stop training after this many total steps')
     tf.app.flags.DEFINE_integer('max_seq', 1, 'maximum sequence length')
-    tf.app.flags.DEFINE_integer('max_decrease_epochs', 33, 'stop training early if eval doesnt go up')
+    tf.app.flags.DEFINE_integer('max_decrease_epochs', 9, 'stop training early if eval doesnt go up')
     tf.app.flags.DEFINE_integer('num_classes', 4, 'number of classes for multiclass classifier')
     tf.app.flags.DEFINE_integer('neg_samples', 200, 'number of negative samples')
     tf.app.flags.DEFINE_integer('random_seed', 1111, 'random seed')
