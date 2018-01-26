@@ -38,7 +38,7 @@ class Transformer(TextEncoder):
         self.ep_dist_batch = ep_dist
 
         if self.encode_position:
-            max_pos = 10000
+            max_pos = 100
             pos_encode_dim = self.embed_dim if self.project_inputs else self.token_dim+(2*self.position_dim)
             self.pos_encoding = tf.get_variable(name='pos_encoding',
                                                 shape=[max_pos, pos_encode_dim],

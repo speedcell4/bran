@@ -1,5 +1,6 @@
 import numpy as np
 import src.tf_utils as tf_utils
+import sys
 
 def batch_feed_dict(batcher, sess, model, FLAGS, evaluate=False, string_int_maps=None):
     batch = batcher.next_batch(sess)
@@ -89,3 +90,32 @@ def ner_feed_dict(batch, model, FLAGS, evaluate=False, string_int_maps=None):
         feed_dict[model.lstm_dropout_keep] = FLAGS.lstm_dropout
         feed_dict[model.final_dropout_keep] = FLAGS.final_dropout
     return feed_dict, tokens.shape[0]
+
+
+def uschema_feed_dict(batcher, sess, model, FLAGS, evaluate=False, string_int_maps=None, text_update=True):
+    batch = batcher.next_batch(sess)
+    e1, e2, ep, rel, tokens, e1_dist, e2_dist, seq_len, doc_ids = batch
+    tokens = tokens if evaluate else tf_utils.word_dropout(tokens, FLAGS.word_unk_dropout)
+    e1_dist = e1_dist if evaluate else tf_utils.word_dropout(e1_dist, FLAGS.pos_unk_dropout, unk_id=0)
+    e2_dist = e2_dist if evaluate else tf_utils.word_dropout(e2_dist, FLAGS.pos_unk_dropout, unk_id=0)
+
+    pos_encode = [range(1, tokens.shape[1]+1) for i in range(tokens.shape[0])]
+
+    label_batch = rel
+    if string_int_maps['label_weights']:
+        lw = string_int_maps['label_weights']
+        ex_loss = [lw[l] if l in lw else 1.0 for l in label_batch]
+    else:
+        ex_loss = np.ones_like(e1)
+
+    feed_dict = {model.text_batch: tokens, model.e1_dist_batch: e1_dist, model.e2_dist_batch: e2_dist,
+                 model.seq_len_batch: seq_len, model.label_batch: label_batch, model.pos_encode_batch: pos_encode,
+                 model.ep_batch: ep, model.kb_batch: rel, model.e1_batch: e1, model.e2_batch: e2,
+                 model.example_loss_weights: ex_loss, model.text_update: text_update}
+
+    if not evaluate:
+        feed_dict[model.word_dropout_keep] = FLAGS.word_dropout
+        feed_dict[model.lstm_dropout_keep] = FLAGS.lstm_dropout
+        feed_dict[model.final_dropout_keep] = FLAGS.final_dropout
+
+    return feed_dict, e1.shape[0], doc_ids

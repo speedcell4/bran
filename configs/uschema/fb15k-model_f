@@ -1,0 +1,64 @@
+export MODEL_NAME='uschema/fb15k_model_f'
+export train=${CDR_IE_ROOT}/src/train_uschema.py
+
+export vocab_dir=fb15k-237
+export positive_dist_train=fb15k-237/\*.proto
+
+
+
+export fb15k_dir=${TF_USCHEMA_ROOT}/data/FB15K/raw-text/
+
+export logdir=$LOG_DIR
+export optimizer=adam
+export model_type=classifier
+export embeddings=/iesl/data/embeddings/glove/glove.6B.100d.txt
+
+export bidirectional=True
+# export in_memory=True
+export in_memory=False
+export text_encoder=transformer_cnn_all_pairs
+export num_classes=237
+export kb_vocab_size=2740640
+export block_repeats=2
+
+export lr=.0005
+export margin=1.0
+export l2_weight=0
+export clip_norm=10
+export dropout_loss_weight=0
+
+export text_weight=1.0
+export text_prob=0.0
+
+export word_unk_dropout=0.9
+export word_dropout=.9
+export lstm_dropout=.9
+export final_dropout=.9
+
+export epsilon=1e-4
+export beta1=.1
+export beta2=.9
+export noise_std=0.1
+
+export text_batch=64
+export kb_batch=64
+export ner_batch=64
+
+export token_dim=0
+export lstm_dim=0
+export embed_dim=64
+export position_dim=0
+
+export pos_noise=.33
+export neg_noise=.20
+# export percentile=True
+
+export kb_pretrain=500
+export kb_epochs=100000
+export text_epochs=100000
+export eval_every=20000
+export max_seq=2000
+export neg_samples=200
+export random_seed=1111
+
+# saved_models/cdr/relex/cdr_2500/\*/.0005_16_32_10_0.5_1.0_1.0_0_0_1.0_64_0_0_0_1.0_.85_.5_.95_.35_1e-4_.1_.9_25000_.1_0_.5_2_\*/train.log

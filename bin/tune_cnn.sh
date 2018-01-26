@@ -11,38 +11,38 @@ MEM=29GB
 #num_gpus=36
 #gpu_partition=titanx-long
 #gpu_partition=m40-short
-num_gpus=54
+num_gpus=128
 gpu_partition=titanx-short
 
-lrs=".0005"
-kb_batch_sizes="16 32"
-text_batch_sizes="32"
+lrs=".001 .0005 .0001"
+kb_batch_sizes="128 1024"
+text_batch_sizes="32 128"
 ner_weights="10"
-text_weights="1.0"
-text_probs="1.0"
-ner_probs="0.5"
+text_weights=".25 1.0"
+text_probs=".5 .9"
+ner_probs="0"
 l2s="0"
 drop_losses="0"
 margins="1.0"
-embed_dims="64"
+embed_dims="64 128"
 token_dims="0"
 lstm_dims="0"
 position_dims="0"
-word_unk_dropouts=".85"
+word_unk_dropouts=".85 1.0"
 pos_unk_dropouts="1.0"
-word_dropouts=".5 .65 .85"
-lstm_dropouts=".8 .95"
-final_dropouts=".35 .5 .65 .85"
+word_dropouts=".85 1.0"
+lstm_dropouts="1.0"
+final_dropouts=".85 1.0"
 epsilons="1e-4 1e-8"
 variance_mins="0"
-noise_stds=".1"
-pos_probs=".5"
+noise_stds="0.0 .1 1.0"
+clip_gradients="1 10 100"
 beta_1s=".9 .1"
 beta_2s=".9"
 decay_steps="25000"
-_block_repeat="2"
-layer_strs="5:1,5:1,5:2,5:4,5:1 5:1,5:1,5:2,5:4,5:16,5:1"
-repeats="0 1 2"
+_block_repeat="1 2 3"
+repeats="0"
+_layer_strs="x"
 #repeats="0 1 2 3 4 5 6 7 8 9"
 
 
@@ -71,7 +71,7 @@ for _lr in ${lrs[@]}; do
                                                                             for _epsilon in ${epsilons[@]}; do
                                                                                 for _var_min in ${variance_mins[@]}; do
                                                                                     for _noise in ${noise_stds[@]}; do
-                                                                                        for _pos_prob in ${pos_probs[@]}; do
+                                                                                        for _clip_gradients in ${clip_gradients[@]}; do
                                                                                             for _beta2 in ${beta_2s[@]}; do
                                                                                                 for _beta1 in ${beta_1s[@]}; do
                                                                                                     for _decay_step in ${decay_steps[@]}; do
@@ -80,7 +80,7 @@ for _lr in ${lrs[@]}; do
                                                                                                             # hack to not run double non-variance jobs
                                                                 #                                            if [[ "$_var_type" == "divide" ]] || [[ "$_var_weight" != "0.0" ]];
                                                                 #                                            then
-                                                                                                                OUT_LOG="${OUT_DIR}/${_lr}_${_kb_batch}_${_text_batch}_${_ner_weight}_${_ner_prob}_${_text_weight}_${_text_prob}_${_l2}_${_drop_loss}_${_margin}_${_embed_dim}_${_lstm_dim}_${_token_dim}_${_position_dim}_${_pos_unk_dropout}_${_word_unk_dropout}_${_word_dropout}_${_lstm_dropout}_${_final_dropout}_${_epsilon}_${_beta1}_${_beta2}_${_decay_step}_${_noise}_${_var_min}_${_pos_prob}_${_layer_str}_${_block_repeat}_${_repeat}_${add_arg_str}"
+                                                                                                                OUT_LOG="${OUT_DIR}/${_lr}_${_kb_batch}_${_text_batch}_${_ner_weight}_${_ner_prob}_${_text_weight}_${_text_prob}_${_l2}_${_drop_loss}_${_margin}_${_embed_dim}_${_lstm_dim}_${_token_dim}_${_position_dim}_${_pos_unk_dropout}_${_word_unk_dropout}_${_word_dropout}_${_lstm_dropout}_${_final_dropout}_${_epsilon}_${_beta1}_${_beta2}_${_decay_step}_${_noise}_${_var_min}_${_clip_gradients}_${_layer_str}_${_block_repeat}_${_repeat}_${add_arg_str}"
                                                                                                                 mkdir -p ${OUT_LOG}
                                                                                                                 tune_args="\
                                                                                                                 --logdir ${OUT_LOG} \
@@ -107,7 +107,7 @@ for _lr in ${lrs[@]}; do
                                                                                                                 --position_dim $_position_dim \
                                                                                                                 --variance_min $_var_min \
                                                                                                                 --noise_std $_noise \
-                                                                                                                --pos_prob $_pos_prob \
+                                                                                                                --clip_norm $_clip_gradients \
                                                                                                                 --random_seed $_repeat \
                                                                                                                 --layer_str $_layer_str \
                                                                                                                 --lr_decay_steps $_decay_step \
