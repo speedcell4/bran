@@ -5,15 +5,15 @@ from __future__ import print_function
 import re
 import os
 import sys
-import tensorflow as tf
 import operator
 import glob
 import gzip
 from collections import defaultdict
 import multiprocessing
 from functools import partial
+
+import tensorflow as tf
 from nltk.tokenize import sent_tokenize
-import string
 
 sys.path.insert(0, './src/processing/utils/')
 from word_piece_tokenizer import WordPieceTokenizer

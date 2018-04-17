@@ -1,7 +1,5 @@
-import tensorflow as tf
-import numpy as np
 import sys
-from src.models.text_encoders import *
+
 from src.models.transformer import *
 
 

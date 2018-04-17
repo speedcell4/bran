@@ -2,7 +2,7 @@
 # /usr/bin/python2
 
 from __future__ import print_function
-import tensorflow as tf
+
 from src.models.text_encoders import *
 from src.tf_utils import *
 

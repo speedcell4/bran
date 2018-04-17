@@ -1,13 +1,13 @@
-from nltk.tokenize import sent_tokenize
 from collections import defaultdict
 import argparse
 import gzip
 import sys
-import numpy as np
 import itertools
 import re
 import codecs
-import json
+
+from nltk.tokenize import sent_tokenize
+import numpy as np
 
 '''
 

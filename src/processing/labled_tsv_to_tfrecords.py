@@ -5,13 +5,14 @@ from __future__ import print_function
 import re
 import os
 import sys
-import tensorflow as tf
 import operator
 import glob
 import gzip
 from collections import defaultdict
 import multiprocessing
 from functools import partial
+
+import tensorflow as tf
 
 tf.app.flags.DEFINE_string('kg_in_files', '', 'pattern to match kg input files')
 tf.app.flags.DEFINE_string('text_in_files', '', 'pattern to match text input files')

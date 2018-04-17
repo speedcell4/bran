@@ -18,8 +18,7 @@ import codecs
 import re
 import copy
 import argparse
-from collections import defaultdict, Counter
-
+from collections import Counter, defaultdict
 # hack for python2/3 compatibility
 from io import open
 

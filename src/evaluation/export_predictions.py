@@ -1,7 +1,6 @@
-from termcolor import colored
 import time
+
 from src.feed_dicts import *
-import sys
 
 
 def export_predictions(sess, model, FLAGS, positive_test_batcher, negative_test_batcher,

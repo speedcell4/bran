@@ -1,6 +1,7 @@
 import codecs
 import argparse
 from collections import defaultdict
+
 import os.path
 
 parser = argparse.ArgumentParser()

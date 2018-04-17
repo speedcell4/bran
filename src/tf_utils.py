@@ -1,4 +1,5 @@
 from __future__ import division
+
 import tensorflow as tf
 import numpy as np
 
@@ -167,7 +168,7 @@ def orthonormal_initializer(input_size, output_size):
             loss = np.sum(QTQmI ** 2 / 2)
             Q2 = Q ** 2
             Q -= lr * Q.dot(QTQmI) / (
-                        np.abs(Q2 + Q2.sum(axis=0, keepdims=True) + Q2.sum(axis=1, keepdims=True) - 1) + eps)
+                    np.abs(Q2 + Q2.sum(axis=0, keepdims=True) + Q2.sum(axis=1, keepdims=True) - 1) + eps)
             if np.max(Q) > 1e6 or loss > 1e6 or not np.isfinite(loss):
                 tries += 1
                 lr /= 2

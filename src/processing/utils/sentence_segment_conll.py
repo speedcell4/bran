@@ -1,6 +1,6 @@
 import argparse
-import sys
 import codecs
+
 from nltk.tokenize import sent_tokenize
 
 parser = argparse.ArgumentParser()

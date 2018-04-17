@@ -1,8 +1,6 @@
 import argparse
 import subprocess
-import sys
 import os
-from operator import itemgetter
 import glob
 
 parser = argparse.ArgumentParser()

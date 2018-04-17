@@ -1,12 +1,13 @@
 from __future__ import division
 from __future__ import print_function
-import numpy as np
-import matplotlib.pyplot as plt
+
 import os
 import re
 import string
 import argparse
-import sys
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--numpy_file', required=True, default='attention_weights.npz',

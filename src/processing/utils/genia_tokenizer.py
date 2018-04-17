@@ -272,7 +272,7 @@ def tokenize(s, ptb_escaping=False, use_single_quotes_only=False,
         r2 = PTB_unescape(s.replace(' ', '').replace('\n', '').replace("'", '').replace('"', '').replace('``', ''))
         if r1 != r2:
             print >> sys.stderr, "tokenize(): error: text mismatch (returning original):\nORIG: '%s'\nNEW:  '%s'" % (
-            orig, s)
+                orig, s)
             s = orig
 
     return (s + s_end).split()

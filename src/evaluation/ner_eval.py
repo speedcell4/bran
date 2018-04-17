@@ -1,8 +1,9 @@
 from __future__ import division
 from __future__ import print_function
+
 import time
-import numpy as np
 import sys
+
 from src.feed_dicts import *
 
 
@@ -98,7 +99,7 @@ def compute_f1(confusion, label_map, gold_ax, outside_idx=-1):
 
     print("\t%10s\tPrec\tRecall\tAccuracy" % ("F1"))
     print("%10s\t%2.2f\t%2.2f\t%2.2f\t%2.2f" % (
-    "Micro (Tok)", f1_micro * 100, precision_micro * 100, recall_micro * 100, accuracy * 100))
+        "Micro (Tok)", f1_micro * 100, precision_micro * 100, recall_micro * 100, accuracy * 100))
     print("%10s\t%2.2f\t%2.2f\t%2.2f" % ("Macro (Tok)", f1_macro * 100, precision_macro * 100, recall_macro * 100))
     print("----------")
     for label in label_map:
@@ -140,7 +141,7 @@ def is_background(curr):
 
 def is_seg_start(curr, prev):
     return (is_start(curr) and not is_continue(curr)) or (
-                is_continue(curr) and (prev is None or is_background(prev) or prev[1:] != curr[1:]))
+            is_continue(curr) and (prev is None or is_background(prev) or prev[1:] != curr[1:]))
 
 
 def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, labels_id_str_map, vocab_id_str_map,
@@ -154,7 +155,8 @@ def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, label
             idx = offset + start
             if 0 <= idx < len(tok_list):
                 print("%s\t%s\t%s" % (
-                vocab_id_str_map[tok_list[idx]], labels_id_str_map[pred_list[idx]], labels_id_str_map[gold_list[idx]]))
+                    vocab_id_str_map[tok_list[idx]], labels_id_str_map[pred_list[idx]],
+                    labels_id_str_map[gold_list[idx]]))
         print()
 
     pred_counts = {t: 0 for t in label_map.values()}
@@ -287,7 +289,7 @@ def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, label
         if idx not in outside_idx:
             print("%10s\t%2.2f\t%2.2f\t%2.2f" % (t, f1s[idx] * 100, precisions[idx] * 100, recalls[idx] * 100))
     print("Processed %d tokens with %d phrases; found: %d phrases; correct: %d." % (
-    token_count, all_gold, all_pred, all_correct))
+        token_count, all_gold, all_pred, all_correct))
     print("Found %d type violations, %d boundary violations." % (type_viols, boundary_viols))
     sys.stdout.flush()
     return f1_micro, precision_micro

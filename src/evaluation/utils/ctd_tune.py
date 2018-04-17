@@ -1,6 +1,5 @@
 import argparse
 import subprocess
-import sys
 import os
 import glob
 from operator import itemgetter

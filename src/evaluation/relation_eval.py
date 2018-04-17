@@ -1,4 +1,5 @@
 import time
+
 from src.feed_dicts import *
 
 
@@ -82,7 +83,7 @@ def relation_eval(sess, model, FLAGS, positive_test_batcher, negative_test_batch
                     best_label_threshold = threshold
             # keep the best threshold scores for each label to calc macro / micro later
             best_scores[label_id] = (
-            best_label_p, best_label_r, best_label_f, best_correct, best_taken, best_label_threshold)
+                best_label_p, best_label_r, best_label_f, best_correct, best_taken, best_label_threshold)
             print('pos examples: %d   neg examples:  %d  correct : %d  taken : %d'
                   % (pos_count, neg_count, best_correct, best_taken))
             print('precision: %2.2f   recall: %2.2f   f: %2.4f   threshold: %2.4f    label: %s'

@@ -127,7 +127,8 @@ def train_model(model, pos_dist_supervision_batcher, neg_dist_supervision_batche
             sys.stdout.write('\rstep: %d \t avg loss: %.4f \t ner loss: %.4f'
                              '\t steps/sec: %.4f \t text examples/sec: %5.2f' %
                              (
-                             step, float(np.mean(losses)), float(np.mean(ner_losses)), steps_per_sec, examples_per_sec))
+                                 step, float(np.mean(losses)), float(np.mean(ner_losses)), steps_per_sec,
+                                 examples_per_sec))
             sys.stdout.flush()
             last_update = time.time()
         step += 1

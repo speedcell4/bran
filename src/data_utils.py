@@ -1,9 +1,10 @@
 import sys
 import time
-import numpy as np
-import tensorflow as tf
 from collections import defaultdict
 from random import shuffle
+
+import numpy as np
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
