@@ -27,7 +27,8 @@ def relation_eval(sess, model, FLAGS, positive_test_batcher, negative_test_batch
             # positive batch
             output = sess.run(result_list, feed_dict=feed_dict)
             if FLAGS.analyze_errors > 0:
-                labeled_scores = [(l, np.argmax(s), np.max(s), e1, e2, tokens, aw) for s, l, e1, e2, tokens, aw in zip(*output)]
+                labeled_scores = [(l, np.argmax(s), np.max(s), e1, e2, tokens, aw) for s, l, e1, e2, tokens, aw in
+                                  zip(*output)]
             else:
                 labeled_scores = [(l, np.argmax(s), np.max(s)) for s, l in zip(*output)]
             # pos_count += len(labeled_scores)
@@ -38,7 +39,8 @@ def relation_eval(sess, model, FLAGS, positive_test_batcher, negative_test_batch
                                                          evaluate=True, string_int_maps=string_int_maps)
         output = sess.run(result_list, feed_dict=feed_dict)
         if FLAGS.analyze_errors > 0:
-            labeled_scores = [(l, np.argmax(s), np.max(s), e1, e2, tokens, aw) for s, l, e1, e2, tokens, aw in zip(*output)]
+            labeled_scores = [(l, np.argmax(s), np.max(s), e1, e2, tokens, aw) for s, l, e1, e2, tokens, aw in
+                              zip(*output)]
         else:
             labeled_scores = [(l, np.argmax(s), np.max(s)) for s, l in zip(*output)]
         neg_count += len(labeled_scores)
@@ -68,8 +70,8 @@ def relation_eval(sess, model, FLAGS, positive_test_batcher, negative_test_batch
                 label_predictions = [(l, p) for l, p in predictions if p == label_id]
                 taken = len(label_predictions)
                 correct = len([l for l, p in label_predictions if l == label_id and l == p])
-                precision = 100*(correct / float(taken)) if taken > 0 else 0.0
-                recall = 100*(correct / float(pos_count)) if pos_count > 0 else 0.0
+                precision = 100 * (correct / float(taken)) if taken > 0 else 0.0
+                recall = 100 * (correct / float(pos_count)) if pos_count > 0 else 0.0
                 f_score = tf_utils.calc_f_score(precision, recall, FLAGS.f_beta)
                 if f_score > best_label_f:
                     best_label_p = precision
@@ -79,11 +81,13 @@ def relation_eval(sess, model, FLAGS, positive_test_batcher, negative_test_batch
                     best_correct = correct
                     best_label_threshold = threshold
             # keep the best threshold scores for each label to calc macro / micro later
-            best_scores[label_id] = (best_label_p, best_label_r, best_label_f, best_correct, best_taken, best_label_threshold)
+            best_scores[label_id] = (
+            best_label_p, best_label_r, best_label_f, best_correct, best_taken, best_label_threshold)
             print('pos examples: %d   neg examples:  %d  correct : %d  taken : %d'
                   % (pos_count, neg_count, best_correct, best_taken))
             print('precision: %2.2f   recall: %2.2f   f: %2.4f   threshold: %2.4f    label: %s'
-                  % (best_label_p, best_label_r, best_label_f, best_label_threshold, string_int_maps['kb_id_str_map'][label_id]))
+                  % (best_label_p, best_label_r, best_label_f, best_label_threshold,
+                     string_int_maps['kb_id_str_map'][label_id]))
 
     # macro F1 for this threshold
     macro_p = np.mean([p for p, r, f, c, take, thresh in best_scores.itervalues()])
@@ -94,8 +98,8 @@ def relation_eval(sess, model, FLAGS, positive_test_batcher, negative_test_batch
     all_correct = np.sum([c for p, r, f, c, take, thresh in best_scores.itervalues()])
     all_taken = np.sum([take for p, r, f, c, take, thresh in best_scores.itervalues()])
     all_positive = np.sum(labeled_pos_counts.values())
-    micro_p = 100*(all_correct / float(all_taken)) if all_taken > 0 else 0.0
-    micro_r = 100*(all_correct / float(all_positive)) if all_positive > 0 else 0.0
+    micro_p = 100 * (all_correct / float(all_taken)) if all_taken > 0 else 0.0
+    micro_r = 100 * (all_correct / float(all_positive)) if all_positive > 0 else 0.0
     micro_f = tf_utils.calc_f_score(micro_p, micro_r, FLAGS.f_beta)
 
     print('precision: %2.2f   recall: %2.2f   f: %2.4f label: %s'

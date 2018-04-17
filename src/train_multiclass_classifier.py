@@ -1,17 +1,13 @@
-import time
 import random
-import re
-import sys
-import numpy as np
 import gzip
-from collections import defaultdict
+
 from src.data_utils import *
-from src.tf_utils import *
 from src.models.classifier_models import *
 from src.evaluation.ner_eval import ner_eval
 from src.evaluation.relation_eval import relation_eval
 from src.evaluation.export_predictions import *
 from src.feed_dicts import *
+
 FLAGS = tf.app.flags.FLAGS
 
 pos_ep_sum, pos_ep_count, neg_ep_sum, neg_ep_count = 0, 1, 0, 1
@@ -32,7 +28,7 @@ def train_model(model, pos_dist_supervision_batcher, neg_dist_supervision_batche
     best_score = 0.0
     decrease_epochs = 0
     last_update = time.time()
-    eval_every = max(1, int(eval_every/float(FLAGS.text_batch)))
+    eval_every = max(1, int(eval_every / float(FLAGS.text_batch)))
     ner_losses = [1.0]
     ner_loss_idx = 1
     ner_prob = FLAGS.ner_prob
@@ -41,110 +37,111 @@ def train_model(model, pos_dist_supervision_batcher, neg_dist_supervision_batche
     # ner_eval(ner_test_batcher, sess, model, token_str_id_map)
     # sys.exit(1)
 
-    print ('Starting training, eval every: %d' % eval_every)
+    print('Starting training, eval every: %d' % eval_every)
     while not sv.should_stop() and (max_steps <= 0 or step < max_steps) and (decrease_epochs <= max_decrease_epochs):
         # try:
-            if FLAGS.anneal_ner and step > 5000:
-                ner_prob = ner_prob * 1/(1 + ner_decay * step)
-            do_ner_update = random.uniform(0, 1) <= ner_prob
-            # eval / serialize
-            if step > 0 and step % eval_every == 0:
-                sess.run(assign_shadow_ops)
+        if FLAGS.anneal_ner and step > 5000:
+            ner_prob = ner_prob * 1 / (1 + ner_decay * step)
+        do_ner_update = random.uniform(0, 1) <= ner_prob
+        # eval / serialize
+        if step > 0 and step % eval_every == 0:
+            sess.run(assign_shadow_ops)
+            if positive_test_batcher:
+                avg_p, flat_scores, threshold_map = relation_eval(sess, model, FLAGS,
+                                                                  positive_test_batcher, negative_test_batcher,
+                                                                  string_int_maps, message='Dev')
+            if ner_test_batcher and FLAGS.ner_prob > 0:
+                ner_f1, ner_p = ner_eval(ner_test_batcher, sess, model, FLAGS, string_int_maps)
+
+            keep_score = avg_p if FLAGS.ner_prob < 1.0 else ner_f1
+            if keep_score > best_score:
+                decrease_epochs = 0
+                best_score = keep_score
+                if save_path:
+                    saved_path = saver.save(sess, save_path)
+                    print("Serialized model: %s" % saved_path)
                 if positive_test_batcher:
-                    avg_p, flat_scores, threshold_map = relation_eval(sess, model, FLAGS,
-                                                                      positive_test_batcher, negative_test_batcher,
-                                                                      string_int_maps, message='Dev')
-                if ner_test_batcher and FLAGS.ner_prob > 0:
-                    ner_f1, ner_p = ner_eval(ner_test_batcher, sess, model, FLAGS, string_int_maps)
+                    # if FLAGS.analyze_errors > 0: analyze_errors(flat_scores, string_int_maps)
+                    if positive_test_test_batcher and negative_test_test_batcher:
+                        print('Evaluating Test Test')
+                        avg_p, _, _ = relation_eval(sess, model, FLAGS,
+                                                    positive_test_test_batcher, negative_test_test_batcher,
+                                                    string_int_maps, message='Test', threshold_map=threshold_map)
+            # if model doesnt improve after max_decrease_epochs, stop training
+            elif FLAGS.ner_prob == 1.0 or not do_ner_update:
+                decrease_epochs += 1
+                print('\nEval decreased for %d epochs out of %d max epochs. Best: %2.2f\n'
+                      % (decrease_epochs, max_decrease_epochs, best_score))
 
-                keep_score = avg_p if FLAGS.ner_prob < 1.0 else ner_f1
-                if keep_score > best_score:
-                    decrease_epochs = 0
-                    best_score = keep_score
-                    if save_path:
-                        saved_path = saver.save(sess, save_path)
-                        print("Serialized model: %s" % saved_path)
-                    if positive_test_batcher:
-                        # if FLAGS.analyze_errors > 0: analyze_errors(flat_scores, string_int_maps)
-                        if positive_test_test_batcher and negative_test_test_batcher:
-                            print('Evaluating Test Test')
-                            avg_p, _, _ = relation_eval(sess, model, FLAGS,
-                                                        positive_test_test_batcher, negative_test_test_batcher,
-                                                        string_int_maps, message='Test', threshold_map=threshold_map)
-                # if model doesnt improve after max_decrease_epochs, stop training
-                elif FLAGS.ner_prob == 1.0 or not do_ner_update:
-                    decrease_epochs += 1
-                    print('\nEval decreased for %d epochs out of %d max epochs. Best: %2.2f\n'
-                          % (decrease_epochs, max_decrease_epochs, best_score))
-
-            # ner update always
-            if do_ner_update:
-                ner_batch = ner_batcher.next_batch(sess)
-                feed_dict, ner_batch_size = ner_feed_dict(ner_batch, model, FLAGS, string_int_maps=string_int_maps)
-                _, global_step, ner_loss, = sess.run([ner_train_op, model.global_step, model.ner_loss], feed_dict=feed_dict)
-                if len(ner_losses) < loss_avg_len:
-                    ner_losses.append(np.mean(ner_loss))
-                    ner_loss_idx += 1
-                else:
-                    ner_loss_idx = 0 if ner_loss_idx >= (loss_avg_len - 1) else ner_loss_idx + 1
-                    ner_losses[ner_loss_idx] = np.mean(ner_loss)
-            # relex update
+        # ner update always
+        if do_ner_update:
+            ner_batch = ner_batcher.next_batch(sess)
+            feed_dict, ner_batch_size = ner_feed_dict(ner_batch, model, FLAGS, string_int_maps=string_int_maps)
+            _, global_step, ner_loss, = sess.run([ner_train_op, model.global_step, model.ner_loss], feed_dict=feed_dict)
+            if len(ner_losses) < loss_avg_len:
+                ner_losses.append(np.mean(ner_loss))
+                ner_loss_idx += 1
             else:
-                # dist supervision update
-                if step < kb_pretrain or random.uniform(0, 1) > text_prob:
-                    if FLAGS.pos_prob >= random.uniform(0, 1):
-                        feed_dict, batch_size, doc_ids = batch_feed_dict(pos_dist_supervision_batcher, sess, model,
-                                                                FLAGS, string_int_maps=string_int_maps)
-                    else:
-                        feed_dict, batch_size, doc_ids = batch_feed_dict(neg_dist_supervision_batcher, sess, model,
-                                                                         FLAGS, string_int_maps=string_int_maps)
+                ner_loss_idx = 0 if ner_loss_idx >= (loss_avg_len - 1) else ner_loss_idx + 1
+                ner_losses[ner_loss_idx] = np.mean(ner_loss)
+        # relex update
+        else:
+            # dist supervision update
+            if step < kb_pretrain or random.uniform(0, 1) > text_prob:
+                if FLAGS.pos_prob >= random.uniform(0, 1):
+                    feed_dict, batch_size, doc_ids = batch_feed_dict(pos_dist_supervision_batcher, sess, model,
+                                                                     FLAGS, string_int_maps=string_int_maps)
                 else:
-                    # text_update
-                    if FLAGS.pos_prob >= random.uniform(0, 1):
-                        feed_dict, batch_size, doc_ids = batch_feed_dict(positive_train_batcher, sess, model,
-                                                                         FLAGS, string_int_maps=string_int_maps)
-                    else:
-                        feed_dict, batch_size, doc_ids = batch_feed_dict(negative_train_batcher, sess, model,
-                                                                         FLAGS, string_int_maps=string_int_maps)
-                    feed_dict[model.loss_weight] = FLAGS.text_weight
-
-                feed_dict[model.noise_weight] = FLAGS.variance_min
-
-                _, global_step, loss, = sess.run([train_op, model.global_step, model.loss], feed_dict=feed_dict)
-                examples += batch_size
-                loss /= batch_size
-
-                # update loss moving avg
-                if len(losses) < loss_avg_len:
-                    losses.append(loss)
-                    loss_idx += 1
+                    feed_dict, batch_size, doc_ids = batch_feed_dict(neg_dist_supervision_batcher, sess, model,
+                                                                     FLAGS, string_int_maps=string_int_maps)
+            else:
+                # text_update
+                if FLAGS.pos_prob >= random.uniform(0, 1):
+                    feed_dict, batch_size, doc_ids = batch_feed_dict(positive_train_batcher, sess, model,
+                                                                     FLAGS, string_int_maps=string_int_maps)
                 else:
-                    loss_idx = 0 if loss_idx >= (loss_avg_len - 1) else loss_idx + 1
-                    losses[loss_idx] = loss
+                    feed_dict, batch_size, doc_ids = batch_feed_dict(negative_train_batcher, sess, model,
+                                                                     FLAGS, string_int_maps=string_int_maps)
+                feed_dict[model.loss_weight] = FLAGS.text_weight
 
-            # log
-            if step % log_every == 0:
-                steps_per_sec = log_every / (time.time() - last_update)
-                examples_per_sec = examples / (time.time() - last_update)
-                examples = 0.
+            feed_dict[model.noise_weight] = FLAGS.variance_min
 
-                sys.stdout.write('\rstep: %d \t avg loss: %.4f \t ner loss: %.4f'
-                                 '\t steps/sec: %.4f \t text examples/sec: %5.2f' %
-                                 (step, float(np.mean(losses)), float(np.mean(ner_losses)), steps_per_sec, examples_per_sec))
-                sys.stdout.flush()
-                last_update = time.time()
-            step += 1
+            _, global_step, loss, = sess.run([train_op, model.global_step, model.loss], feed_dict=feed_dict)
+            examples += batch_size
+            loss /= batch_size
 
-    print ('\n Done training')
+            # update loss moving avg
+            if len(losses) < loss_avg_len:
+                losses.append(loss)
+                loss_idx += 1
+            else:
+                loss_idx = 0 if loss_idx >= (loss_avg_len - 1) else loss_idx + 1
+                losses[loss_idx] = loss
+
+        # log
+        if step % log_every == 0:
+            steps_per_sec = log_every / (time.time() - last_update)
+            examples_per_sec = examples / (time.time() - last_update)
+            examples = 0.
+
+            sys.stdout.write('\rstep: %d \t avg loss: %.4f \t ner loss: %.4f'
+                             '\t steps/sec: %.4f \t text examples/sec: %5.2f' %
+                             (
+                             step, float(np.mean(losses)), float(np.mean(ner_losses)), steps_per_sec, examples_per_sec))
+            sys.stdout.flush()
+            last_update = time.time()
+        step += 1
+
+    print('\n Done training')
     if best_score > 0.0: print('Best Score: %2.2f' % best_score)
 
 
 def main(argv):
     ## TODO gross
     if ('transformer' in FLAGS.text_encoder or 'glu' in FLAGS.text_encoder) and FLAGS.token_dim == 0:
-        FLAGS.token_dim = FLAGS.embed_dim-(2*FLAGS.position_dim)
+        FLAGS.token_dim = FLAGS.embed_dim - (2 * FLAGS.position_dim)
     # print flags:values in alphabetical order
-    print ('\n'.join(sorted(["%s : %s" % (str(k), str(v)) for k, v in FLAGS.__dict__['__flags'].iteritems()])))
+    print('\n'.join(sorted(["%s : %s" % (str(k), str(v)) for k, v in FLAGS.__dict__['__flags'].iteritems()])))
 
     if FLAGS.vocab_dir == '':
         print('Error: Must supply input data generated from tsv_to_tfrecords.py')
@@ -165,7 +162,6 @@ def main(argv):
             if '<END>' not in token_str_id_map: token_str_id_map['<END>'] = len(token_str_id_map)
         token_id_str_map = {i: s for s, i in token_str_id_map.iteritems()}
         token_vocab_size = len(token_id_str_map)
-
 
     with open(FLAGS.vocab_dir + '/entities.txt', 'r') as f:
         entity_str_id_map = {l.split('\t')[0]: int(l.split('\t')[1].strip()) for l in f.readlines()}
@@ -198,7 +194,8 @@ def main(argv):
 
     ep_kg_labels = None
     if FLAGS.kg_label_file != '':
-        kg_in_file = gzip.open(FLAGS.kg_label_file, 'rb') if FLAGS.kg_label_file.endswith('gz') else open(FLAGS.kg_label_file, 'r')
+        kg_in_file = gzip.open(FLAGS.kg_label_file, 'rb') if FLAGS.kg_label_file.endswith('gz') else open(
+            FLAGS.kg_label_file, 'r')
         lines = [l.strip().split() for l in kg_in_file.readlines()]
         eps = [('%s::%s' % (l[0], l[1]), l[2]) for l in lines]
         ep_kg_labels = defaultdict(set)
@@ -206,9 +203,9 @@ def main(argv):
         print('Ep-Kg label map size %d ' % len(ep_kg_labels))
         kg_in_file.close()
 
-    e1_e2_ep_map = {} #{(entity_str_id_map[ep_str.split('::')[0]], entity_str_id_map[ep_str.split('::')[1]]): ep_id
-                      #for ep_id, ep_str in ep_id_str_map.iteritems()}
-    ep_e1_e2_map = {} #{ep: e1_e2 for e1_e2, ep in e1_e2_ep_map.iteritems()}
+    e1_e2_ep_map = {}  # {(entity_str_id_map[ep_str.split('::')[0]], entity_str_id_map[ep_str.split('::')[1]]): ep_id
+    # for ep_id, ep_str in ep_id_str_map.iteritems()}
+    ep_e1_e2_map = {}  # {ep: e1_e2 for e1_e2, ep in e1_e2_ep_map.iteritems()}
 
     # get entity <-> type maps for sampling negatives
     entity_type_map, type_entity_map = {}, defaultdict(list)
@@ -226,15 +223,17 @@ def main(argv):
             entity_type_map = {k: v for k, v in entity_type_map.iteritems() if len(v) > 1}
 
     string_int_maps = {'kb_str_id_map': kb_str_id_map, 'kb_id_str_map': kb_id_str_map,
-                        'token_str_id_map': token_str_id_map, 'token_id_str_map': token_id_str_map,
-                        'entity_str_id_map': entity_str_id_map, 'entity_id_str_map': entity_id_str_map,
-                        'ep_str_id_map': ep_str_id_map, 'ep_id_str_map': ep_id_str_map,
-                        'ner_label_str_id_map': ner_label_str_id_map, 'ner_label_id_str_map': ner_label_id_str_map,
-                        'e1_e2_ep_map': e1_e2_ep_map, 'ep_e1_e2_map': ep_e1_e2_map, 'ep_kg_labels': ep_kg_labels,
-                        'label_weights': label_weights}
+                       'token_str_id_map': token_str_id_map, 'token_id_str_map': token_id_str_map,
+                       'entity_str_id_map': entity_str_id_map, 'entity_id_str_map': entity_id_str_map,
+                       'ep_str_id_map': ep_str_id_map, 'ep_id_str_map': ep_id_str_map,
+                       'ner_label_str_id_map': ner_label_str_id_map, 'ner_label_id_str_map': ner_label_id_str_map,
+                       'e1_e2_ep_map': e1_e2_ep_map, 'ep_e1_e2_map': ep_e1_e2_map, 'ep_kg_labels': ep_kg_labels,
+                       'label_weights': label_weights}
 
-    word_embedding_matrix = load_pretrained_embeddings(token_str_id_map, FLAGS.embeddings, FLAGS.token_dim, token_vocab_size)
-    entity_embedding_matrix = load_pretrained_embeddings(entity_str_id_map, FLAGS.entity_embeddings, FLAGS.embed_dim, entity_vocab_size)
+    word_embedding_matrix = load_pretrained_embeddings(token_str_id_map, FLAGS.embeddings, FLAGS.token_dim,
+                                                       token_vocab_size)
+    entity_embedding_matrix = load_pretrained_embeddings(entity_str_id_map, FLAGS.entity_embeddings, FLAGS.embed_dim,
+                                                         entity_vocab_size)
 
     with tf.Graph().as_default():
         tf.set_random_seed(FLAGS.random_seed)
@@ -255,9 +254,11 @@ def main(argv):
 
         # have seperate batchers for positive and negative train/test
         batcher = InMemoryBatcher if FLAGS.in_memory else Batcher
-        pos_dist_supervision_batcher = batcher(FLAGS.positive_dist_train, FLAGS.kb_epochs, FLAGS.max_seq, FLAGS.kb_batch) \
+        pos_dist_supervision_batcher = batcher(FLAGS.positive_dist_train, FLAGS.kb_epochs, FLAGS.max_seq,
+                                               FLAGS.kb_batch) \
             if FLAGS.positive_dist_train else None
-        neg_dist_supervision_batcher = batcher(FLAGS.negative_dist_train, FLAGS.kb_epochs, FLAGS.max_seq, FLAGS.kb_batch) \
+        neg_dist_supervision_batcher = batcher(FLAGS.negative_dist_train, FLAGS.kb_epochs, FLAGS.max_seq,
+                                               FLAGS.kb_batch) \
             if FLAGS.negative_dist_train else None
 
         positive_train_batcher = batcher(FLAGS.positive_train, FLAGS.text_epochs, FLAGS.max_seq, FLAGS.text_batch)
@@ -290,11 +291,12 @@ def main(argv):
         # optimization
         learning_rate = tf.train.exponential_decay(FLAGS.lr, model.global_step, FLAGS.lr_decay_steps,
                                                    FLAGS.lr_decay_rate, staircase=False, name=None)
-        print ('Optimizer: %s' % FLAGS.optimizer)
+        print('Optimizer: %s' % FLAGS.optimizer)
         if FLAGS.optimizer == 'adam':
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=FLAGS.epsilon, beta2=FLAGS.beta2)
         elif FLAGS.optimizer == 'lazyadam':
-            optimizer = tf.contrib.opt.LazyAdamOptimizer(learning_rate=learning_rate, epsilon=FLAGS.epsilon, beta2=FLAGS.beta2)
+            optimizer = tf.contrib.opt.LazyAdamOptimizer(learning_rate=learning_rate, epsilon=FLAGS.epsilon,
+                                                         beta2=FLAGS.beta2)
         elif FLAGS.optimizer == 'adagrad':
             optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
         elif FLAGS.optimizer == 'momentum':
@@ -328,7 +330,7 @@ def main(argv):
                         else:
                             gradient_shape = gradient.get_shape()
                         std = FLAGS.noise_std
-                        scale = tf.sqrt(tf.cast(1+model.global_step, tf.float32))
+                        scale = tf.sqrt(tf.cast(1 + model.global_step, tf.float32))
                         noise = tf.truncated_normal(gradient_shape, stddev=std) / scale
                         noisy_gradients.append(gradient + noise)
                     grads = noisy_gradients
@@ -367,7 +369,7 @@ def main(argv):
             cp_list = set([key for key in reader.get_variable_to_shape_map()])
             # if variable does not exist in checkpoint or sizes do not match, dont load
             r_vars = [k for k in tf.global_variables() if k.name.split(':')[0] in cp_list
-                        and k.get_shape() == reader.get_variable_to_shape_map()[k.name.split(':')[0]]]
+                      and k.get_shape() == reader.get_variable_to_shape_map()[k.name.split(':')[0]]]
             if len(cp_list) != len(r_vars):
                 print('[Warning]: not all variables loaded from file')
                 # print('\n'.join(sorted(set(cp_list)-set(r_vars))))
@@ -400,7 +402,7 @@ def main(argv):
             if negative_test_batcher: negative_test_batcher.load_all_data(sess, doc_filter=dev_ids)
             if positive_test_test_batcher: positive_test_test_batcher.load_all_data(sess)
             if negative_test_test_batcher: negative_test_test_batcher.load_all_data(sess)
-            if ner_test_batcher: ner_test_batcher.load_all_data(sess)#, test_batches)
+            if ner_test_batcher: ner_test_batcher.load_all_data(sess)  # , test_batches)
             if FLAGS.mode == 'train':
                 save_path = '%s/%s' % (FLAGS.logdir, FLAGS.save_model) if FLAGS.save_model != '' else None
                 train_model(model, pos_dist_supervision_batcher, neg_dist_supervision_batcher,
@@ -424,10 +426,11 @@ def main(argv):
                                            string_int_maps, FLAGS.export_file, threshold_map=threshold_map)
                     else:
                         results, _, _ = relation_eval(sess, model, FLAGS, positive_test_test_batcher,
-                                                      negative_test_test_batcher, string_int_maps, threshold_map=threshold_map)
+                                                      negative_test_test_batcher, string_int_maps,
+                                                      threshold_map=threshold_map)
                 if ner_test_batcher:
                     ner_eval(ner_test_batcher, sess, model, FLAGS, string_int_maps)
-                print (results)
+                print(results)
             elif FLAGS.mode == 'export' and FLAGS.export_file != '':
                 print('Exporting predictions')
                 export_scores(sess, model, FLAGS, positive_test_test_batcher, negative_test_test_batcher,
@@ -435,7 +438,7 @@ def main(argv):
             elif FLAGS.mode == 'attention' and FLAGS.export_file != '':
                 print('Exporting attention weights')
                 export_attentions(sess, model, FLAGS, positive_test_batcher, negative_test_batcher,
-                              string_int_maps, FLAGS.export_file)
+                                  string_int_maps, FLAGS.export_file)
             else:
                 print('Error: "%s" is not a valid mode' % FLAGS.mode)
                 sys.exit(1)
@@ -464,7 +467,7 @@ if __name__ == '__main__':
     tf.app.flags.DEFINE_string('positive_test_test', '',
                                'file pattern of proto buffers generated from ../src/processing/tsv_to_tfrecords.py')
     tf.app.flags.DEFINE_string('negative_test_test', '',
-                                'file pattern of proto buffers generated from ../src/processing/tsv_to_tfrecords.py')
+                               'file pattern of proto buffers generated from ../src/processing/tsv_to_tfrecords.py')
     tf.app.flags.DEFINE_string('ner_train', '',
                                'file pattern of proto buffers generated from ../src/processing/ner_to_tfrecords.py')
     tf.app.flags.DEFINE_string('ner_test', '',
@@ -579,6 +582,5 @@ if __name__ == '__main__':
     tf.app.flags.DEFINE_integer('neg_samples', 200, 'number of negative samples')
     tf.app.flags.DEFINE_integer('random_seed', 1111, 'random seed')
     tf.app.flags.DEFINE_integer('analyze_errors', 0, 'print out error analysis for K examples per type and exit')
-
 
 tf.app.run()

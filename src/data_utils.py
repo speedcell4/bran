@@ -27,8 +27,8 @@ class Batcher(object):
         min_after_dequeue = 10000
         capacity = min_after_dequeue + 12 * batch_size
         next_batch = tf.train.batch(
-                parsed_batch, batch_size=batch_size, capacity=capacity,
-                num_threads=num_threads, dynamic_pad=True, allow_smaller_final_batch=True)
+            parsed_batch, batch_size=batch_size, capacity=capacity,
+            num_threads=num_threads, dynamic_pad=True, allow_smaller_final_batch=True)
         return next_batch
 
     def example_parser(self, filename_queue):
@@ -83,7 +83,7 @@ class InMemoryBatcher(Batcher):
         batch_num = 0
         samples = 0
         start_time = time.time()
-        print ('Loading data from %s with batch size: %d' % (self.in_file, self._batch_size))
+        print('Loading data from %s with batch size: %d' % (self.in_file, self._batch_size))
         try:
             while max_batches <= 0 or batch_num < max_batches:
                 batch = sess.run(self.next_batch_op)
@@ -120,7 +120,7 @@ class InMemoryBatcher(Batcher):
                                   for i in range(e1.shape[0])]
         self.reset_batch_pointer()
         end_time = time.time()
-        print('Done, loaded %d samples in %5.2f seconds' % (samples, (end_time-start_time)))
+        print('Done, loaded %d samples in %5.2f seconds' % (samples, (end_time - start_time)))
         return batch_num
 
     def next_batch(self, sess):
@@ -133,7 +133,7 @@ class InMemoryBatcher(Batcher):
         self._ends[bucket] = min(self._ends[bucket] + self._batch_size, len(self.data[bucket]))
         self._bucket_probs[bucket] = max(0, len(self.data[bucket]) - self._starts[bucket])
 
-        #TODO this is dumb
+        # TODO this is dumb
         _e1 = np.array([e1 for e1, e2, ep, rel, t, e1d, e2d, s, did in batch])
         _e2 = np.array([e2 for e1, e2, ep, rel, t, e1d, e2d, s, did in batch])
         _ep = np.array([ep for e1, e2, ep, rel, t, e1d, e2d, s, did in batch])
@@ -202,7 +202,7 @@ class NERInMemoryBatcher(InMemoryBatcher):
         batch_num = 0
         samples = 0
         start_time = time.time()
-        print ('Loading data from %s with batch size: %d' % (self.in_file, self._batch_size))
+        print('Loading data from %s with batch size: %d' % (self.in_file, self._batch_size))
         try:
             while True:
                 batch = sess.run(self.next_batch_op)
@@ -220,7 +220,7 @@ class NERInMemoryBatcher(InMemoryBatcher):
                                   for i in range(s.shape[0])]
         self.reset_batch_pointer()
         end_time = time.time()
-        print('Done, loaded %d samples in %5.2f seconds' % (samples, (end_time-start_time)))
+        print('Done, loaded %d samples in %5.2f seconds' % (samples, (end_time - start_time)))
         return batch_num
 
     def next_batch(self, sess):

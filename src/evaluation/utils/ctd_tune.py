@@ -5,15 +5,14 @@ import os
 import glob
 from operator import itemgetter
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--predictions', required=True, help='prediction files')
 parser.add_argument('-o', '--output_file', required=True, help='write results to this file')
 parser.add_argument('-v', '--vocab_file', required=True, help='vocab file (probably data_dir/protos/rel.txt)')
 parser.add_argument('-e', '--eval_script', required=True, help='eval_script')
 parser.add_argument('-m', '--max_score', default=False, help='only consider max scoring label for each prediction')
-parser.add_argument('-f', '--filter_file',  help='same format as gold file, only consider predictions in this filter')
-parser.add_argument('-g', '--gold_file',  help='gold annotation file')
+parser.add_argument('-f', '--filter_file', help='same format as gold file, only consider predictions in this filter')
+parser.add_argument('-g', '--gold_file', help='gold annotation file')
 parser.add_argument('-j', '--jar_file', default='/home/pat/data/biocreative/BC_VI_Task5/bc6chemprot_eval.jar',
                     help='gold annotation file')
 parser.add_argument('-n', '--null_labels', default='Null', help='gold annotation file')
@@ -57,12 +56,12 @@ for i, pred_file in enumerate(file_names):
                     if key in all_predictions:
                         current_preds = all_predictions[key]
                         file_pred_map = {l: p for l, p in pred_list}
-                        all_predictions[key] = [(l, p+file_pred_map[l]) if l in file_pred_map else (l, p)
+                        all_predictions[key] = [(l, p + file_pred_map[l]) if l in file_pred_map else (l, p)
                                                 for j, (l, p) in enumerate(current_preds)]
                     else:
                         all_predictions[key] = pred_list
 # average the preds
-predictions = {key: [(l, p/num_files) for l, p in pred_list] for key, pred_list in all_predictions.iteritems()}
+predictions = {key: [(l, p / num_files) for l, p in pred_list] for key, pred_list in all_predictions.iteritems()}
 
 # tune thresholds
 if args.gold_file:

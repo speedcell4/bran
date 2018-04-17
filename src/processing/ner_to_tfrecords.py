@@ -27,10 +27,18 @@ FLAGS = tf.app.flags.FLAGS
 feature = tf.train.Feature
 sequence_example = tf.train.SequenceExample
 
+
 def features(d): return tf.train.Features(feature=d)
+
+
 def int64_feature(v): return feature(int64_list=tf.train.Int64List(value=v))
+
+
 def feature_list(l): return tf.train.FeatureList(feature=l)
+
+
 def feature_lists(d): return tf.train.FeatureLists(feature_list=d)
+
 
 queue = multiprocessing.Queue()
 queue.put(0)

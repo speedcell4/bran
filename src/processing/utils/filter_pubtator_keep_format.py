@@ -2,6 +2,7 @@ import argparse
 import gzip
 import sys
 import itertools
+
 '''
 
 '''
@@ -27,8 +28,7 @@ exported_annotations = 0
 exported_abstracts = 0
 total_abstracts = 0
 
-
-print ('Reading in filter files')
+print('Reading in filter files')
 pubmed_filter, entity_filter, ep_filter, doc_relation_map = None, None, None, None
 if args.pubmed_filter:
     with open(args.pubmed_filter) as f:
@@ -43,7 +43,7 @@ if args.entity_pair_filter:
 if args.relation_file:
     print('Reading in relation file %s' % args.relation_file)
     with (gzip.open(args.relation_file, 'rb') if args.relation_file.endswith('gz')
-          else open(args.relation_file, 'r')) as rel_file:
+    else open(args.relation_file, 'r')) as rel_file:
         doc_relation_map = {(doc_id, e1, e2): rel for e1, e2, rel, doc_id in [_l.strip().split() for _l in rel_file]}
 
 with (gzip.open(args.output_file, 'wb') if args.output_file.endswith('.gz') else open(args.output_file, 'r')) as out_f:
@@ -57,8 +57,8 @@ with (gzip.open(args.output_file, 'wb') if args.output_file.endswith('.gz') else
             if line_num % 10000 == 0:
                 sys.stdout.write('\rline: %dK   exported_annotations: %dK  '
                                  'exported_abstracts: %dK  total_abstracts : %dK'
-                                 % (line_num/1000, exported_annotations/1000,
-                                    exported_abstracts/1000, total_abstracts/1000))
+                                 % (line_num / 1000, exported_annotations / 1000,
+                                    exported_abstracts / 1000, total_abstracts / 1000))
                 sys.stdout.flush()
             # new pub
             if len(line.strip()) == 0:

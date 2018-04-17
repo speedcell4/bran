@@ -18,7 +18,6 @@ parser.add_argument('-o', '--out_dir', required=True, help='dir to write all out
 parser.add_argument('-m', '--max_len', type=int, default=True, help='only plot documents up to this length')
 args = parser.parse_args()
 
-
 # index of deepest layer
 max_layer = 1
 # colors for highlighting entities & relations labels
@@ -30,6 +29,7 @@ save_dir = args.out_dir
 
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
+
 
 def sorted_alphanum(l):
     convert = lambda text: int(text) if text.isdigit() else text
@@ -60,7 +60,6 @@ with open(args.ner_file, 'r') as f:
             current_labels = []
             current_entities = []
 
-
 lines = map(lambda x: x.split('\t'), open(args.key_file, 'r').readlines())
 docs = []
 current_doc = []
@@ -76,7 +75,6 @@ for line in lines:
             current_doc.append(map(string.strip, line[1:]))
 
 docs.append(map(list, zip(*current_doc)))
-
 
 batch_size = data[data.files[0]].shape[0]
 

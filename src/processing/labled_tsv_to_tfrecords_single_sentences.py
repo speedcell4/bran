@@ -14,9 +14,9 @@ import multiprocessing
 from functools import partial
 from nltk.tokenize import sent_tokenize
 import string
+
 sys.path.insert(0, './src/processing/utils/')
 from word_piece_tokenizer import WordPieceTokenizer
-
 
 tf.app.flags.DEFINE_string('kg_in_files', '', 'pattern to match kg input files')
 tf.app.flags.DEFINE_string('text_in_files', '', 'pattern to match text input files')
@@ -44,13 +44,24 @@ if FLAGS.word_piece_codes:
     tokenize = wpt.tokenize
 else:
     import genia_tokenizer
+
     tokenize = genia_tokenizer.tokenize
 
+
 def features(d): return tf.train.Features(feature=d)
+
+
 def int64_feature(v): return feature(int64_list=tf.train.Int64List(value=v))
+
+
 def bytes_feature(v): return feature(bytes_list=tf.train.BytesList(value=v))
+
+
 def feature_list(l): return tf.train.FeatureList(feature=l)
+
+
 def feature_lists(d): return tf.train.FeatureLists(feature_list=d)
+
 
 queue = multiprocessing.Queue()
 queue.put(0)
@@ -101,11 +112,11 @@ def process_single_annotation(doc_str, last, start, end, annotation_map, annotat
 
 
 def convert_to_single_sentence(doc_str, e1_start, e1_end, e2_start, e2_end, annotation_map):
-    offsets = zip(e1_start+e2_start, e1_end+e2_end, [1]*len(e1_start)+[2]*len(e2_start))
+    offsets = zip(e1_start + e2_start, e1_end + e2_end, [1] * len(e1_start) + [2] * len(e2_start))
     offsets = sorted(offsets, key=lambda tup: tup[0])
     replaced_doc_str = [process_single_annotation(doc_str, 0, s, e, annotation_map, i, ent_id) if i == 0
                         else
-                        process_single_annotation(doc_str, offsets[i-1][1], s, e, annotation_map, i, ent_id)
+                        process_single_annotation(doc_str, offsets[i - 1][1], s, e, annotation_map, i, ent_id)
                         for i, (s, e, ent_id) in enumerate(offsets)]
 
     replaced_doc_str.append(' '.join(doc_str[offsets[-1][1]:]))
@@ -121,7 +132,7 @@ def convert_to_single_sentence(doc_str, e1_start, e1_end, e2_start, e2_end, anno
         else:
             idx = chosen_sent[0]
             s_idx = max(0, idx - FLAGS.sentence_window)
-            e_idx = min(idx + FLAGS.sentence_window+1, len(tokenized_sents))
+            e_idx = min(idx + FLAGS.sentence_window + 1, len(tokenized_sents))
             window_sentences = [tokenized_sents[i] for i in (range(s_idx, e_idx))]
             replaced_sent = [annotation_map[w] if w in annotation_map else w for s in window_sentences for w in s]
         return replaced_sent
@@ -161,9 +172,9 @@ def make_example_all_mentions(entity_map, ep_map, rel_map, token_map, line, writ
             else:
                 w, ent_id = w
                 if ent_id == 1:
-                    e1_indices = range(i, i+len(w))
+                    e1_indices = range(i, i + len(w))
                 elif ent_id == 2:
-                    e2_indices = range(i, i+len(w))
+                    e2_indices = range(i, i + len(w))
                 else:
                     print('Error: %d is not a valid entity id [1, 2]' % ent_id)
                 i += len(w)
@@ -191,19 +202,19 @@ def make_example_all_mentions(entity_map, ep_map, rel_map, token_map, line, writ
             tokens = [tf.train.Feature(int64_list=tf.train.Int64List(value=[t])) for t in tokens]
 
             example = sequence_example(
-                    context=features({
-                        'e1': int64_feature([e1]),
-                        'e2': int64_feature([e2]),
-                        'ep': int64_feature([ep]),
-                        'rel': int64_feature([rel]),
-                        'seq_len': int64_feature([len(tokens)]),
-                        'doc_id': bytes_feature([doc_id]),
-                    }),
-                    feature_lists=feature_lists({
-                        "tokens": feature_list(tokens),
-                        "e1_dist": feature_list(e1_dists),
-                        "e2_dist": feature_list(e2_dists),
-                    }))
+                context=features({
+                    'e1': int64_feature([e1]),
+                    'e2': int64_feature([e2]),
+                    'ep': int64_feature([ep]),
+                    'rel': int64_feature([rel]),
+                    'seq_len': int64_feature([len(tokens)]),
+                    'doc_id': bytes_feature([doc_id]),
+                }),
+                feature_lists=feature_lists({
+                    "tokens": feature_list(tokens),
+                    "e1_dist": feature_list(e1_dists),
+                    "e2_dist": feature_list(e2_dists),
+                }))
             writer.write(example.SerializeToString())
             return 1
     return 0
@@ -247,7 +258,7 @@ def tsv_to_examples():
     # out_paths = [FLAGS.out_dir + '/' + out_f for out_f in FLAGS.out_files.split(',') if out_f]
     kg_in_files = sorted(glob.glob(FLAGS.kg_in_files))
     text_in_files = sorted(glob.glob(FLAGS.text_in_files))
-    in_files = text_in_files+kg_in_files if FLAGS.text_vocab_first else kg_in_files+text_in_files
+    in_files = text_in_files + kg_in_files if FLAGS.text_vocab_first else kg_in_files + text_in_files
     out_files = ['%s/%s.proto' % (FLAGS.out_dir, in_f.split('/')[-1]) for in_f in in_files]
 
     total_lines = 0
@@ -282,7 +293,8 @@ def tsv_to_examples():
                     if line_num % 1000 == 0:
                         sys.stdout.write('\rProcessing line: %d \t errors: %d ' % (line_num, errors))
                         sys.stdout.flush()
-                    errors += update_vocab_counts(line, entity_counter, ep_counter, rel_map, token_counter, update_rel_map)
+                    errors += update_vocab_counts(line, entity_counter, ep_counter, rel_map, token_counter,
+                                                  update_rel_map)
                 print(' Done')
                 f_reader.close()
                 total_lines += line_num
@@ -311,7 +323,8 @@ def tsv_to_examples():
 
     pool = multiprocessing.Pool(FLAGS.num_threads)
     try:
-        pool.map_async(partial(process_file, entity_map, ep_map, rel_map, token_map, total_lines), zip(in_files, out_files)).get(999999)
+        pool.map_async(partial(process_file, entity_map, ep_map, rel_map, token_map, total_lines),
+                       zip(in_files, out_files)).get(999999)
         pool.close()
         pool.join()
     except KeyboardInterrupt:

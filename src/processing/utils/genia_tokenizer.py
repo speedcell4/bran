@@ -21,7 +21,6 @@ from __future__ import with_statement
 import re
 import sys
 
-
 INPUT_ENCODING = "UTF-8"
 OUTPUT_ENCODING = "UTF-8"
 DEBUG_GTB_TOKENIZATION = False
@@ -35,15 +34,18 @@ PTB_ESCAPES = [('(', '-LRB-'),
                ('}', '-RCB-'),
                ]
 
+
 def PTB_escape(s):
     for u, e in PTB_ESCAPES:
         s = s.replace(u, e)
     return s
 
+
 def PTB_unescape(s):
     for u, e in PTB_ESCAPES:
         s = s.replace(e, u)
     return s
+
 
 # processing in three stages: "initial" regexs run first, then
 # "repeated" run as long as there are changes, and then "final"
@@ -174,6 +176,7 @@ __final.append((re.compile(r' wanna '), ' wan na '))
 # clean up possible extra space
 __final.append((re.compile(r'  +'), r' '))
 
+
 def _tokenize(s):
     """
     Tokenizer core. Performs GTP-like tokenization, using PTB escapes
@@ -197,6 +200,7 @@ def _tokenize(s):
 
     return s
 
+
 def tokenize(s, ptb_escaping=False, use_single_quotes_only=False,
              escape_token_internal_parens=False):
     """
@@ -213,14 +217,14 @@ def tokenize(s, ptb_escaping=False, use_single_quotes_only=False,
     # TODO: this isn't this difficult ... rewrite nicely
     s = re.sub(r'^', ' ', s)
     m = re.match(r'^((?:.+|\n)*?) *(\n*)$', s)
-    assert m, "INTERNAL ERROR on '%s'" % s # should always match
+    assert m, "INTERNAL ERROR on '%s'" % s  # should always match
     s, s_end = m.groups()
     s = re.sub(r'$', ' ', s)
 
     if ptb_escaping:
         if use_single_quotes_only:
             # special case for McCCJ: escape into single quotes.
-            s = re.sub(r'([ \(\[\{\<])\"', r'\1 '+"' ", s)
+            s = re.sub(r'([ \(\[\{\<])\"', r'\1 ' + "' ", s)
         else:
             # standard PTB quote escaping
             s = re.sub(r'([ \(\[\{\<])\"', r'\1 `` ', s)
@@ -264,10 +268,11 @@ def tokenize(s, ptb_escaping=False, use_single_quotes_only=False,
         # revised must match original when whitespace, quotes (etc.)
         # and escapes are ignored
         # TODO: clean this up
-        r1 = PTB_unescape(orig.replace(' ', '').replace('\n','').replace("'",'').replace('"','').replace('``',''))
-        r2 = PTB_unescape(s.replace(' ', '').replace('\n','').replace("'",'').replace('"','').replace('``',''))
+        r1 = PTB_unescape(orig.replace(' ', '').replace('\n', '').replace("'", '').replace('"', '').replace('``', ''))
+        r2 = PTB_unescape(s.replace(' ', '').replace('\n', '').replace("'", '').replace('"', '').replace('``', ''))
         if r1 != r2:
-            print >> sys.stderr, "tokenize(): error: text mismatch (returning original):\nORIG: '%s'\nNEW:  '%s'" % (orig, s)
+            print >> sys.stderr, "tokenize(): error: text mismatch (returning original):\nORIG: '%s'\nNEW:  '%s'" % (
+            orig, s)
             s = orig
 
-    return (s+s_end).split()
+    return (s + s_end).split()

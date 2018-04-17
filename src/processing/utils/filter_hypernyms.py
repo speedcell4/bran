@@ -1,6 +1,7 @@
 import argparse
 import codecs
 from collections import defaultdict
+
 '''
 
 '''
@@ -13,10 +14,9 @@ parser.add_argument('-o', '--output_file', required=True, help='write results to
 
 args = parser.parse_args()
 
-
 # read in mesh heirarchy
 ent_tree_map = defaultdict(list)
-with codecs.open(args.mesh_file,'r', encoding='utf-16-le') as f:
+with codecs.open(args.mesh_file, 'r', encoding='utf-16-le') as f:
     # lines = [[s.decode('utf-16le') for s in l.rstrip().split('\t')] for i, l in enumerate(f) if i > 0]
     lines = [l.rstrip().split('\t') for i, l in enumerate(f) if i > 0]
     [ent_tree_map[l[1]].append(l[0]) for l in lines]
@@ -37,7 +37,7 @@ with open(args.negative_input_file, 'r') as f:
     unfilitered_neg_count = len(lines)
     [neg_doc_examples[l[10]].append(l) for l in lines]
 
-#iterate over docs
+# iterate over docs
 hypo_count = 0
 negative_count = 0
 with open(args.output_file, 'w') as out_f:
@@ -59,7 +59,7 @@ with open(args.output_file, 'w') as out_f:
                               if neg_node in pos_node and neg_e2 == pe[5]]
                 example_hyponyms += len(hyponyms)
             if example_hyponyms == 0:
-                out_f.write('\t'.join(ne)+'\n')
+                out_f.write('\t'.join(ne) + '\n')
                 negative_count += 1
             else:
                 hypo_count += example_hyponyms

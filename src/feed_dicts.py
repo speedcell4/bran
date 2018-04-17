@@ -1,6 +1,7 @@
 import numpy as np
 import src.tf_utils as tf_utils
 
+
 def batch_feed_dict(batcher, sess, model, FLAGS, evaluate=False, string_int_maps=None):
     batch = batcher.next_batch(sess)
     e1, e2, ep, rel, tokens, e1_dist, e2_dist, seq_len, doc_ids = batch
@@ -22,7 +23,7 @@ def batch_feed_dict(batcher, sess, model, FLAGS, evaluate=False, string_int_maps
         start_col = zero_col + start_id
         tokens = np.hstack((start_col, tokens, zero_col))
         for i, s in enumerate(seq_len):
-            tokens[i, s+1] = end_id
+            tokens[i, s + 1] = end_id
         e1_dist = np.hstack((zero_col, e1_dist, zero_col))
         e2_dist = np.hstack((zero_col, e2_dist, zero_col))
         seq_len += 2
@@ -35,7 +36,7 @@ def batch_feed_dict(batcher, sess, model, FLAGS, evaluate=False, string_int_maps
                        if _ep in string_int_maps['ep_kg_labels']
                        else 0 for _ep, _did in zip(ep, doc_ids)])
 
-    pos_encode = [range(1, tokens.shape[1]+1) for i in range(tokens.shape[0])]
+    pos_encode = [range(1, tokens.shape[1] + 1) for i in range(tokens.shape[0])]
     # if FLAGS.num_classes == 2:
     #     label_batch = np.ones(e1.shape) if positive else np.zeros(e1.shape)
     # else:
@@ -74,12 +75,12 @@ def ner_feed_dict(batch, model, FLAGS, evaluate=False, string_int_maps=None):
         tokens = np.hstack((start_col, tokens, zero_col))
         labels = np.hstack((ner_start_col, labels, zero_col))
         for i, s in enumerate(seq_len):
-            tokens[i, s+1] = end_id
-            labels[i, s+1] = ner_end_id
+            tokens[i, s + 1] = end_id
+            labels[i, s + 1] = ner_end_id
         seq_len += 2
     e1_dist = np.zeros_like(tokens)
     e2_dist = np.zeros_like(tokens)
-    pos_encode = [range(1, tokens.shape[1]+1) for i in range(tokens.shape[0])]
+    pos_encode = [range(1, tokens.shape[1] + 1) for i in range(tokens.shape[0])]
 
     feed_dict = {model.text_batch: tokens, model.seq_len_batch: seq_len, model.ner_label_batch: labels,
                  model.e1_dist_batch: e1_dist, model.e2_dist_batch: e2_dist, model.loss_weight: FLAGS.ner_weight,

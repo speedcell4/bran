@@ -6,7 +6,8 @@ import os.path
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input_dir', required=True, help='input dir')
 parser.add_argument('-s', '--split', required=True, help='training, development, or testing')
-parser.add_argument('-f', '--filter_extra_relations', default=True, type=bool, help='only keep relations evaluated in task')
+parser.add_argument('-f', '--filter_extra_relations', default=True, type=bool,
+                    help='only keep relations evaluated in task')
 parser.add_argument('-e', '--extra_suffix', default="", help='add addditional suffix to filename')
 args = parser.parse_args()
 
@@ -18,7 +19,8 @@ filter_relations = set(['CPR:0', 'CPR:1', 'CPR:2', 'CPR:7', 'CPR:8', 'CPR:10']) 
     if args.filter_extra_relations else set()
 
 # read in title / abstracts
-with codecs.open('%s/%s_%s_%s%s.tsv' % (root_dir, 'chemprot', split, 'abstracts', args.extra_suffix), 'r', 'utf-8') as f:
+with codecs.open('%s/%s_%s_%s%s.tsv' % (root_dir, 'chemprot', split, 'abstracts', args.extra_suffix), 'r',
+                 'utf-8') as f:
     lines = [l.strip().split('\t') for l in f]
     text = {pmid: (title, abstract) for pmid, title, abstract in lines}
 

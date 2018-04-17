@@ -3,6 +3,7 @@ import time
 from src.feed_dicts import *
 import sys
 
+
 def export_predictions(sess, model, FLAGS, positive_test_batcher, negative_test_batcher,
                        string_int_maps, out_file, threshold_map=None):
     '''
@@ -113,7 +114,8 @@ def export_attentions(sess, model, FLAGS, positive_test_batcher, negative_test_b
             feed_dict, batch_size, doc_ids = batch_feed_dict(positive_test_batcher, sess, model, FLAGS,
                                                              evaluate=True, string_int_maps=string_int_maps)
             # positive batch
-            probs, labels, e1, e2, token_ids, attention_weights, pair_scores = sess.run(result_list, feed_dict=feed_dict)
+            probs, labels, e1, e2, token_ids, attention_weights, pair_scores = sess.run(result_list,
+                                                                                        feed_dict=feed_dict)
             pair_scores = [np.transpose(p, (0, 2, 1, 3)) for p in np.dsplit(pair_scores, FLAGS.num_classes)]
 
             # iterate over a single example
@@ -135,7 +137,6 @@ def export_attentions(sess, model, FLAGS, positive_test_batcher, negative_test_b
 
     print('Evaluation took %5.5f seconds' % (time.time() - start_time))
     print('Wrote results to %s' % out_file)
-
 
 # def color_token(t, e1, e2, aw, mean_aws, std_aws, default_background='on_white', default_text='grey'):
 #     high_cutoff = (1.96*std_aws)

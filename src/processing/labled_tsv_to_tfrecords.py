@@ -31,11 +31,21 @@ FLAGS = tf.app.flags.FLAGS
 feature = tf.train.Feature
 sequence_example = tf.train.SequenceExample
 
+
 def features(d): return tf.train.Features(feature=d)
+
+
 def int64_feature(v): return feature(int64_list=tf.train.Int64List(value=v))
+
+
 def bytes_feature(v): return feature(bytes_list=tf.train.BytesList(value=v))
+
+
 def feature_list(l): return tf.train.FeatureList(feature=l)
+
+
 def feature_lists(d): return tf.train.FeatureLists(feature_list=d)
+
 
 queue = multiprocessing.Queue()
 queue.put(0)
@@ -135,43 +145,43 @@ def make_example(entity_map, ep_map, rel_map, token_map, line, writer):
 
             e1_dists = [
                 tf.train.Feature(int64_list=tf.train.Int64List(
-                        value=[((i - e1_start) + FLAGS.max_len)]))
+                    value=[((i - e1_start) + FLAGS.max_len)]))
                 if i < e1_start else
                 tf.train.Feature(int64_list=tf.train.Int64List(
-                        value=[FLAGS.max_len]))
+                    value=[FLAGS.max_len]))
                 if i < e1_end else
                 tf.train.Feature(int64_list=tf.train.Int64List(
-                        value=[((i - e1_end+1) + FLAGS.max_len)]))
+                    value=[((i - e1_end + 1) + FLAGS.max_len)]))
                 for i, t in enumerate(tokens)
-                ]
+            ]
             e2_dists = [
                 tf.train.Feature(int64_list=tf.train.Int64List(
-                        value=[((i - e2_start) + FLAGS.max_len)]))
+                    value=[((i - e2_start) + FLAGS.max_len)]))
                 if i < e2_start else
                 tf.train.Feature(int64_list=tf.train.Int64List(
-                        value=[FLAGS.max_len]))
+                    value=[FLAGS.max_len]))
                 if i < e2_end else
                 tf.train.Feature(int64_list=tf.train.Int64List(
-                        value=[((i - e2_end+1) + FLAGS.max_len)]))
+                    value=[((i - e2_end + 1) + FLAGS.max_len)]))
                 for i, t in enumerate(tokens)
-                ]
+            ]
 
             tokens = [tf.train.Feature(int64_list=tf.train.Int64List(value=[t])) for t in tokens]
 
             example = sequence_example(
-                    context=features({
-                        'e1': int64_feature([e1]),
-                        'e2': int64_feature([e2]),
-                        'ep': int64_feature([ep]),
-                        'rel': int64_feature([rel]),
-                        'seq_len': int64_feature([len(tokens)]),
-                        'doc_id': bytes_feature([doc_id]),
-                    }),
-                    feature_lists=feature_lists({
-                        "tokens": feature_list(tokens),
-                        "e1_dist": feature_list(e1_dists),
-                        "e2_dist": feature_list(e2_dists),
-                    }))
+                context=features({
+                    'e1': int64_feature([e1]),
+                    'e2': int64_feature([e2]),
+                    'ep': int64_feature([ep]),
+                    'rel': int64_feature([rel]),
+                    'seq_len': int64_feature([len(tokens)]),
+                    'doc_id': bytes_feature([doc_id]),
+                }),
+                feature_lists=feature_lists({
+                    "tokens": feature_list(tokens),
+                    "e1_dist": feature_list(e1_dists),
+                    "e2_dist": feature_list(e2_dists),
+                }))
 
             writer.write(example.SerializeToString())
             return 1
@@ -225,19 +235,19 @@ def make_example_all_mentions(entity_map, ep_map, rel_map, token_map, line, writ
         tokens = [tf.train.Feature(int64_list=tf.train.Int64List(value=[t])) for t in tokens]
 
         example = sequence_example(
-                context=features({
-                    'e1': int64_feature([e1]),
-                    'e2': int64_feature([e2]),
-                    'ep': int64_feature([ep]),
-                    'rel': int64_feature([rel]),
-                    'seq_len': int64_feature([len(tokens)]),
-                    'doc_id': bytes_feature([doc_id]),
-                }),
-                feature_lists=feature_lists({
-                    "tokens": feature_list(tokens),
-                    "e1_dist": feature_list(e1_dists),
-                    "e2_dist": feature_list(e2_dists),
-                }))
+            context=features({
+                'e1': int64_feature([e1]),
+                'e2': int64_feature([e2]),
+                'ep': int64_feature([ep]),
+                'rel': int64_feature([rel]),
+                'seq_len': int64_feature([len(tokens)]),
+                'doc_id': bytes_feature([doc_id]),
+            }),
+            feature_lists=feature_lists({
+                "tokens": feature_list(tokens),
+                "e1_dist": feature_list(e1_dists),
+                "e2_dist": feature_list(e2_dists),
+            }))
 
         writer.write(example.SerializeToString())
         return 1
@@ -284,7 +294,7 @@ def tsv_to_examples():
     # out_paths = [FLAGS.out_dir + '/' + out_f for out_f in FLAGS.out_files.split(',') if out_f]
     kg_in_files = sorted(glob.glob(FLAGS.kg_in_files))
     text_in_files = sorted(glob.glob(FLAGS.text_in_files))
-    in_files = text_in_files+kg_in_files if FLAGS.text_vocab_first else kg_in_files+text_in_files
+    in_files = text_in_files + kg_in_files if FLAGS.text_vocab_first else kg_in_files + text_in_files
     out_files = ['%s/%s.proto' % (FLAGS.out_dir, in_f.split('/')[-1]) for in_f in in_files]
 
     total_lines = 0
@@ -319,7 +329,8 @@ def tsv_to_examples():
                     if line_num % 1000 == 0:
                         sys.stdout.write('\rProcessing line: %d \t errors: %d ' % (line_num, errors))
                         sys.stdout.flush()
-                    errors += update_vocab_counts(line, entity_counter, ep_counter, rel_map, token_counter, update_rel_map)
+                    errors += update_vocab_counts(line, entity_counter, ep_counter, rel_map, token_counter,
+                                                  update_rel_map)
                 print(' Done')
                 f_reader.close()
                 total_lines += line_num
@@ -344,7 +355,8 @@ def tsv_to_examples():
     print('Starting file process threads using %d threads' % FLAGS.num_threads)
     pool = multiprocessing.Pool(FLAGS.num_threads)
     try:
-        pool.map_async(partial(process_file, entity_map, ep_map, rel_map, token_map, total_lines), zip(in_files, out_files)).get(999999)
+        pool.map_async(partial(process_file, entity_map, ep_map, rel_map, token_map, total_lines),
+                       zip(in_files, out_files)).get(999999)
         pool.close()
         pool.join()
     except KeyboardInterrupt:

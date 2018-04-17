@@ -3,14 +3,12 @@ import sys
 import codecs
 from nltk.tokenize import sent_tokenize
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input_file', required=True, help='input file in conll format')
 parser.add_argument('-o', '--output_file', required=True, help='output file in conll format')
 parser.add_argument('-e', '--encoding', default='utf-8', help='input encoding')
 
 args = parser.parse_args()
-
 
 with codecs.open(args.input_file, 'r', encoding=args.encoding) as f:
     lines = [l.strip() for l in f]
@@ -29,7 +27,7 @@ with codecs.open(args.output_file, 'w', encoding=args.encoding) as out_f:
         # abstract is over
         else:
             if abstract_num % 100 == 0:
-                print (abstract_num, len(tokens), len(labels), len(kgids), len(docids), errors)
+                print(abstract_num, len(tokens), len(labels), len(kgids), len(docids), errors)
             abstract = ' '.join(tokens)
             sentences = sent_tokenize(abstract, 'english')
             new_tokens = ' '.join(sentences).split(' ')
@@ -45,7 +43,7 @@ with codecs.open(args.output_file, 'w', encoding=args.encoding) as out_f:
                         kgid = kgids[cur_token]
                         docid = docids[cur_token]
                         # last token of sentence had . attached
-                        if token_num == (len(tokens)-1) and token != '.' and token.endswith('.'):
+                        if token_num == (len(tokens) - 1) and token != '.' and token.endswith('.'):
                             out_line = '%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\n' \
                                        % (token[:-1], label, kgid, docid, '.', 'O', '-1', docid)
                             out_f.write(out_line)
@@ -58,5 +56,3 @@ with codecs.open(args.output_file, 'w', encoding=args.encoding) as out_f:
             abstract_num += 1
 
             tokens, labels, kgids, docids = [], [], [], []
-
-

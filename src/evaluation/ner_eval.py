@@ -6,9 +6,8 @@ import sys
 from src.feed_dicts import *
 
 
-
 def ner_eval(ner_test_batcher, sess, model, FLAGS, string_int_maps):
-    outside_set = ["O", "<PAD>",  "<START>",  "<END>", "<ZERO>",
+    outside_set = ["O", "<PAD>", "<START>", "<END>", "<ZERO>",
                    'B-ProteinMutation', 'B-DNAMutation', 'B-SNP', 'B-Gene', 'B-Species',
                    'I-ProteinMutation', 'I-DNAMutation', 'I-SNP', 'I-Gene', 'I-Species']
 
@@ -61,9 +60,6 @@ def ner_eval(ner_test_batcher, sess, model, FLAGS, string_int_maps):
                         token_id_str_map, outside_idx, extra_text="", verbose=False)
 
 
-
-
-
 # compute various F1 statistics given a numpy array confusion matrix, and the index of the "outside" class
 # if outside_idx=-1, there is no outside class
 def compute_f1(confusion, label_map, gold_ax, outside_idx=-1):
@@ -82,32 +78,33 @@ def compute_f1(confusion, label_map, gold_ax, outside_idx=-1):
 
     all_correct = np.sum(tps)
     total = np.sum(confusion)
-    accuracy = all_correct/total
+    accuracy = all_correct / total
 
-    precisions = tps/tpfps
-    recalls = tps/tpfns
-    f1s = 2*precisions*recalls/(precisions+recalls)
+    precisions = tps / tpfps
+    recalls = tps / tpfns
+    f1s = 2 * precisions * recalls / (precisions + recalls)
 
     masked_precisions = np.ma.masked_array(precisions, o_mask)
     masked_recalls = np.ma.masked_array(recalls, o_mask)
 
     precision_macro = np.ma.mean(masked_precisions)
     recall_macro = np.ma.mean(masked_recalls)
-    f1_macro = 2*precision_macro*recall_macro/(precision_macro+recall_macro)
+    f1_macro = 2 * precision_macro * recall_macro / (precision_macro + recall_macro)
 
     masked_tps_total = np.ma.sum(masked_tps)
-    precision_micro = masked_tps_total/np.ma.sum(masked_tpfps)
-    recall_micro = masked_tps_total/np.ma.sum(masked_tpfns)
-    f1_micro = 2*precision_micro*recall_micro/(precision_micro+recall_micro)
+    precision_micro = masked_tps_total / np.ma.sum(masked_tpfps)
+    recall_micro = masked_tps_total / np.ma.sum(masked_tpfns)
+    f1_micro = 2 * precision_micro * recall_micro / (precision_micro + recall_micro)
 
     print("\t%10s\tPrec\tRecall\tAccuracy" % ("F1"))
-    print("%10s\t%2.2f\t%2.2f\t%2.2f\t%2.2f" % ("Micro (Tok)", f1_micro*100, precision_micro*100, recall_micro*100, accuracy*100))
-    print("%10s\t%2.2f\t%2.2f\t%2.2f" % ("Macro (Tok)", f1_macro*100, precision_macro*100, recall_macro*100))
+    print("%10s\t%2.2f\t%2.2f\t%2.2f\t%2.2f" % (
+    "Micro (Tok)", f1_micro * 100, precision_micro * 100, recall_micro * 100, accuracy * 100))
+    print("%10s\t%2.2f\t%2.2f\t%2.2f" % ("Macro (Tok)", f1_macro * 100, precision_macro * 100, recall_macro * 100))
     print("----------")
     for label in label_map:
         idx = label_map[label]
         if not idx == outside_idx:
-            print("%10s\t%2.2f\t%2.2f\t%2.2f" % (label, f1s[idx]*100, precisions[idx]*100, recalls[idx]*100))
+            print("%10s\t%2.2f\t%2.2f\t%2.2f" % (label, f1s[idx] * 100, precisions[idx] * 100, recalls[idx] * 100))
     sys.stdout.flush()
 
 
@@ -116,15 +113,16 @@ def token_eval(batches, predictions, label_map, type_int_int_map, outside_idx, p
     confusion = np.zeros((num_types, num_types))
     if extra_text != "":
         print(extra_text)
-    for predictions, (label_batch, token_batch, shape_batch, char_batch, seq_len_batch, mask_batch) in zip(predictions, batches):
+    for predictions, (label_batch, token_batch, shape_batch, char_batch, seq_len_batch, mask_batch) in zip(predictions,
+                                                                                                           batches):
         for preds, labels, seq_lens in zip(predictions, label_batch, seq_len_batch):
             start = pad_width
             for seq_len in seq_lens:
                 for i in range(seq_len):
                     # for pred, label in zip(preds[pad_width:seq_len+pad_width], labels[pad_width:seq_len+pad_width]):
                     # this will give you token-level F1
-                    confusion[type_int_int_map[preds[i+start]], type_int_int_map[labels[i+start]]] += 1
-                start += 2*pad_width + seq_len
+                    confusion[type_int_int_map[preds[i + start]], type_int_int_map[labels[i + start]]] += 1
+                start += 2 * pad_width + seq_len
     compute_f1(confusion, label_map, gold_ax=0, outside_idx=outside_idx)
 
 
@@ -141,19 +139,22 @@ def is_background(curr):
 
 
 def is_seg_start(curr, prev):
-    return (is_start(curr) and not is_continue(curr)) or (is_continue(curr) and (prev is None or is_background(prev) or prev[1:] != curr[1:]))
+    return (is_start(curr) and not is_continue(curr)) or (
+                is_continue(curr) and (prev is None or is_background(prev) or prev[1:] != curr[1:]))
 
 
-def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, labels_id_str_map, vocab_id_str_map, outside_idx,
+def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, labels_id_str_map, vocab_id_str_map,
+                 outside_idx,
                  extra_text="", verbose=False):
     if extra_text != "":
         print(extra_text)
 
     def print_context(width, start, tok_list, pred_list, gold_list):
-        for offset in range(-width, width+1):
+        for offset in range(-width, width + 1):
             idx = offset + start
             if 0 <= idx < len(tok_list):
-                print("%s\t%s\t%s" % (vocab_id_str_map[tok_list[idx]], labels_id_str_map[pred_list[idx]], labels_id_str_map[gold_list[idx]]))
+                print("%s\t%s\t%s" % (
+                vocab_id_str_map[tok_list[idx]], labels_id_str_map[pred_list[idx]], labels_id_str_map[gold_list[idx]]))
         print()
 
     pred_counts = {t: 0 for t in label_map.values()}
@@ -164,7 +165,7 @@ def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, label
     type_viols = 0
     # iterate over batches
     for predicted, golds, toks in zip(predictions, labels, tokens):
-    # for predictions, (dev_label_batch, dev_token_batch, dev_seq_len_batch) in zip(predictions, batches):
+        # for predictions, (dev_label_batch, dev_token_batch, dev_seq_len_batch) in zip(predictions, batches):
         # print(mask_batch[0])
         # iterate over examples in batch
         # for preds, labels, tokens, seq_lens in zip(predictions, dev_label_batch, dev_token_batch, dev_seq_len_batch):
@@ -234,24 +235,25 @@ def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, label
                                 if pred_continue != gold_continue:
                                     # I or L must come after B or I
                                     if pred_continue:
-                                        last_bilou = labels_id_str_map[predicted[j-1]][0]
+                                        last_bilou = labels_id_str_map[predicted[j - 1]][0]
                                         if last_bilou != "B" and last_bilou != "I":
                                             boundary_viols += 1
                                             if verbose:
                                                 print_context(2, j, toks, predicted, golds)
                                     if pred2[0] == "B":
-                                        next_bilou = labels_id_str_map[predicted[j+1]][0] if j+1 < seq_len else "I" # wrong
+                                        next_bilou = labels_id_str_map[predicted[j + 1]][
+                                            0] if j + 1 < seq_len else "I"  # wrong
                                         if next_bilou != "I" and next_bilou != "L":
                                             boundary_viols += 1
                                             if verbose:
                                                 print_context(2, j, toks, predicted, golds)
 
                                 # if pred_continue == gold_continue:
-                                if (not pred_continue and not gold_continue) or (pred_continue and gold_continue and pred_type2 == gold_type):
+                                if (not pred_continue and not gold_continue) or (
+                                        pred_continue and gold_continue and pred_type2 == gold_type):
                                     correct_counts[gold_type] += 1
                                 stop_search = True
                             j += 1
-
 
     all_correct = np.sum([p if i not in outside_idx else 0 for i, p in enumerate(correct_counts.values())])
     all_pred = np.sum([p if i not in outside_idx else 0 for i, p in enumerate(pred_counts.values())])
@@ -284,17 +286,19 @@ def segment_eval(predictions, labels, tokens, label_map, type_int_int_map, label
         idx = label_map[t]
         if idx not in outside_idx:
             print("%10s\t%2.2f\t%2.2f\t%2.2f" % (t, f1s[idx] * 100, precisions[idx] * 100, recalls[idx] * 100))
-    print("Processed %d tokens with %d phrases; found: %d phrases; correct: %d." % (token_count, all_gold, all_pred, all_correct))
+    print("Processed %d tokens with %d phrases; found: %d phrases; correct: %d." % (
+    token_count, all_gold, all_pred, all_correct))
     print("Found %d type violations, %d boundary violations." % (type_viols, boundary_viols))
     sys.stdout.flush()
     return f1_micro, precision_micro
 
 
 def print_training_error(num_examples, start_time, epoch_losses, step):
-    losses_str = ' '.join(["%5.5f"]*len(epoch_losses)) % tuple(map(lambda l: l/step, epoch_losses))
+    losses_str = ' '.join(["%5.5f"] * len(epoch_losses)) % tuple(map(lambda l: l / step, epoch_losses))
     print("%20d examples at %5.2f examples/sec. Error: %s" %
           (num_examples, num_examples / (time.time() - start_time), losses_str))
     sys.stdout.flush()
+
 
 # label_map = {'LOC': 1, 'MISC': 4, 'O': 3, 'PER': 0, 'ORG': 2}
 # confusion = np.array(
@@ -312,8 +316,9 @@ def print_conlleval_format(out_filename, eval_batches, predictions, labels_id_st
         token_count = 0
         sentence_count = 0
         for prediction, (
-                label_batch, token_batch, shape_batch, char_batch, seq_len_batch, tok_len_batch, eval_mask_batch) in zip(
-                predictions, eval_batches):
+                label_batch, token_batch, shape_batch, char_batch, seq_len_batch, tok_len_batch,
+                eval_mask_batch) in zip(
+            predictions, eval_batches):
             for preds, labels, tokens, seq_lens in zip(prediction, label_batch, token_batch, seq_len_batch):
                 start = pad_width
                 for seq_len in seq_lens:
@@ -377,10 +382,10 @@ def print_conlleval_format(out_filename, eval_batches, predictions, labels_id_st
                                 #     else:
                                 #         labels_converted.append("I" + label[1:])
 
-                        for pred_conv, label_conv, pred, label, token in zip(preds_converted, labels_converted, preds_nopad,
+                        for pred_conv, label_conv, pred, label, token in zip(preds_converted, labels_converted,
+                                                                             preds_nopad,
                                                                              labels_nopad, tokens_nopad):
                             print("%s %s %s %s %s" % (token, label, pred, label_conv, pred_conv), file=conll_preds_file)
                         print("", file=conll_preds_file)
                         sentence_count += 1
                         # print("%d tokens; %d sentences" % (token_count, sentence_count))
-

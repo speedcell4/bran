@@ -98,24 +98,26 @@ class ClassifierModel(object):
                 print('%s is not a valid text encoder' % FLAGS.text_encoder)
                 sys.exit(1)
             filter_width = int(FLAGS.text_encoder.split('_')[-1]) if FLAGS.text_encoder.split('_')[-1].isdigit() else 3
-            self.text_encoder = text_encoder_type(self.text_batch, self.e1_dist_batch, self.e2_dist_batch, self.ep_dist_batch,
+            self.text_encoder = text_encoder_type(self.text_batch, self.e1_dist_batch, self.e2_dist_batch,
+                                                  self.ep_dist_batch,
                                                   self.seq_len_batch,
                                                   self._lstm_dim, self._embed_dim, self._position_dim, self._token_dim,
                                                   self.bidirectional, self._peephole, self.max_pool,
-                                                  self.word_dropout_keep, self.lstm_dropout_keep, self.final_dropout_keep,
+                                                  self.word_dropout_keep, self.lstm_dropout_keep,
+                                                  self.final_dropout_keep,
                                                   layer_str=FLAGS.layer_str, pos_encode_batch=self.pos_encode_batch,
                                                   filterwidth=filter_width, block_repeats=FLAGS.block_repeats,
                                                   filter_pad=FLAGS.filter_pad, string_int_maps=string_int_maps,
                                                   entity_index=1,
-                                                    # entity_index=position_vocab_size/2,
+                                                  # entity_index=position_vocab_size/2,
                                                   e1_batch=self.e1_batch, e2_batch=self.e2_batch,
-                                                  entity_embeddings=entity_embeddings, entity_vocab_size=entity_vocab_size,
+                                                  entity_embeddings=entity_embeddings,
+                                                  entity_vocab_size=entity_vocab_size,
                                                   num_labels=FLAGS.num_classes, project_inputs=FLAGS.freeze
                                                   )
 
-
             # encode the batch of sentences into b x d matrix
-            token_attention = None # tf.squeeze(self.get_ep_embedding(), [1])
+            token_attention = None  # tf.squeeze(self.get_ep_embedding(), [1])
             self.attention_vector = tf.nn.embedding_lookup(tf.transpose(self.w_1), tf.ones_like(self.e1_batch))
             encoded_text_list = self.text_encoder.embed_text(self.token_embeddings, self.position_embeddings,
                                                              self.attention_vector, token_attention=token_attention)
@@ -143,7 +145,6 @@ class ClassifierModel(object):
     def get_probs(self):
         return tf.nn.softmax(self.predictions)
 
-
     def get_ep_embedding(self, non_linear=tf.identity):
         self.entity_embeddings = tf.get_variable(name='entity_embeddings',
                                                  shape=[self._entity_vocab_size, self._embed_dim],
@@ -155,11 +156,10 @@ class ClassifierModel(object):
         ep_embeddings = tf.multiply(pos_e1_expanded, pos_e2_expanded)
         return ep_embeddings
 
-
     def calculate_loss(self, encoded_text_list, logits_list, labels, l2_weight,
                        dropout_weight=0.0, no_drop_output_list=None, label_smoothing=.0):
         loss = 0.0
-        labels = tf.one_hot(labels, self._num_labels, on_value=1.0-label_smoothing, off_value=label_smoothing)
+        labels = tf.one_hot(labels, self._num_labels, on_value=1.0 - label_smoothing, off_value=label_smoothing)
         for logits in logits_list:
             loss_batch = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
             loss += tf.reduce_sum(self.example_loss_weights * loss_batch)
@@ -167,13 +167,13 @@ class ClassifierModel(object):
         if l2_weight > 0.0:
             for et in encoded_text_list:
                 loss += tf.constant(l2_weight) * \
-                       (tf.nn.l2_loss(self.w_1) + tf.nn.l2_loss(self.w_0)
-                        + tf.nn.l2_loss(et)
-                        )
+                        (tf.nn.l2_loss(self.w_1) + tf.nn.l2_loss(self.w_0)
+                         + tf.nn.l2_loss(et)
+                         )
         # difference between output with and without dropout
         for et, no_drop_et in zip(encoded_text_list, no_drop_output_list):
-            loss += dropout_weight * tf.nn.l2_loss(no_drop_et-et)
-        return self.loss_weight * (loss/float(len(logits_list)))
+            loss += dropout_weight * tf.nn.l2_loss(no_drop_et - et)
+        return self.loss_weight * (loss / float(len(logits_list)))
 
     def calculate_accuracy(self, logits, labels):
         correct_prediction = tf.equal(labels, tf.cast(tf.argmax(logits, 1), tf.int32))
@@ -208,7 +208,8 @@ class ClassifierModel(object):
             if self.mlp:
                 self.ner_w_0 = tf.get_variable(name='ner_w_0', shape=[self._embed_dim, self.inner_embed_dim],
                                                initializer=tf.contrib.layers.xavier_initializer())
-                self.ner_b_0 = tf.get_variable(name='ner_b_0', initializer=tf.constant(0.0001, shape=[self.inner_embed_dim]))
+                self.ner_b_0 = tf.get_variable(name='ner_b_0',
+                                               initializer=tf.constant(0.0001, shape=[self.inner_embed_dim]))
                 prediction_0 = tf.nn.relu(tf.nn.xw_plus_b(tokens, self.ner_w_0, self.ner_b_0))
                 logits = tf.nn.xw_plus_b(prediction_0, self.ner_w_1, self.ner_b_1)
             else:
@@ -216,7 +217,8 @@ class ClassifierModel(object):
             return logits
 
     def ner(self, ner_labels=6, pad_idx=0):
-        encoded_tokens_list = self.text_encoder.embed_text(self.token_embeddings, self.position_embeddings, self.attention_vector,
+        encoded_tokens_list = self.text_encoder.embed_text(self.token_embeddings, self.position_embeddings,
+                                                           self.attention_vector,
                                                            return_tokens=True, reuse=True)
         loss = 0.0
         flat_labels = tf.reshape(self.ner_label_batch, [-1])
@@ -227,7 +229,7 @@ class ClassifierModel(object):
             flat_logits = self.ner_predictions(flat_tokens, ner_labels, reuse=reuse)
             token_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=flat_logits, labels=flat_labels)
             loss += tf.reduce_sum(tf.reduce_mean(tf.multiply(token_losses, self.flat_mask), reduction_indices=[-1]))
-        return flat_logits, (self.loss_weight*(loss/float(len(encoded_tokens_list))))
+        return flat_logits, (self.loss_weight * (loss / float(len(encoded_tokens_list))))
 
     def add_bias(self, x):
         return x
@@ -240,7 +242,7 @@ class MultiLabelClassifier(ClassifierModel):
     def calculate_loss(self, encoded_text_list, logits_list, labels, l2_weight,
                        dropout_weight=0.0, no_drop_output_list=None, label_smoothing=.0):
         loss = 0.0
-        labels = tf.one_hot(labels, self._num_labels, on_value=1.0-label_smoothing, off_value=label_smoothing)
+        labels = tf.one_hot(labels, self._num_labels, on_value=1.0 - label_smoothing, off_value=label_smoothing)
         for logits in logits_list:
             print('----- SIGMOID ----')
             loss_batch = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels)
@@ -251,13 +253,13 @@ class MultiLabelClassifier(ClassifierModel):
         if l2_weight > 0.0:
             for et in encoded_text_list:
                 loss += tf.constant(l2_weight) * \
-                       (tf.nn.l2_loss(self.w_1) + tf.nn.l2_loss(self.w_0)
-                        + tf.nn.l2_loss(et)
-                        )
+                        (tf.nn.l2_loss(self.w_1) + tf.nn.l2_loss(self.w_0)
+                         + tf.nn.l2_loss(et)
+                         )
         # difference between output with and without dropout
         for et, no_drop_et in zip(encoded_text_list, no_drop_output_list):
-            loss += dropout_weight * tf.nn.l2_loss(no_drop_et-et)
-        return self.loss_weight * (loss/float(len(logits_list)))
+            loss += dropout_weight * tf.nn.l2_loss(no_drop_et - et)
+        return self.loss_weight * (loss / float(len(logits_list)))
 
 
 class EntityBinary(ClassifierModel):
@@ -265,18 +267,16 @@ class EntityBinary(ClassifierModel):
     def add_bias(self, predictions):
         self.ep_embeddings = tf.get_variable(name='ep_embeddings',
                                              shape=[2, self._num_labels],
-                                             initializer=tf.contrib.layers.xavier_initializer(),)
+                                             initializer=tf.contrib.layers.xavier_initializer(), )
         ep_embeddings = tf.nn.embedding_lookup(self.ep_embeddings, self.ep_batch)
         predictions += ep_embeddings
         return predictions
-
 
     def score_sentence(self, encoded_text, reuse=False, use_seq_len=False):
         with tf.variable_scope('score_sentence', reuse=reuse):
             self.ep_embeddings = tf.get_variable(name='ep_embeddings',
                                                  shape=[2, 1],
-                                                 initializer=tf.contrib.layers.xavier_initializer(),)
-
+                                                 initializer=tf.contrib.layers.xavier_initializer(), )
 
             ep_embeddings = tf.nn.dropout(tf.nn.embedding_lookup(self.ep_embeddings, self.ep_batch),
                                           self.final_dropout_keep)
@@ -297,7 +297,7 @@ class EntityBinary(ClassifierModel):
                 self.w_1 = tf.get_variable(name='w_1', shape=[self.inner_embed_dim, self._num_labels],
                                            initializer=tf.contrib.layers.xavier_initializer())
                 self.b_1 = tf.get_variable(name='b_1', initializer=tf.constant(0.0001, shape=[self._num_labels]))
-                self.w_0 = tf.get_variable(name='w_0', shape=[feature_dim+self._embed_dim, self.inner_embed_dim],
+                self.w_0 = tf.get_variable(name='w_0', shape=[feature_dim + self._embed_dim, self.inner_embed_dim],
                                            initializer=tf.contrib.layers.xavier_initializer())
                 self.b_0 = tf.get_variable(name='b_0', initializer=tf.constant(0.0001, shape=[self.inner_embed_dim]))
 
@@ -305,10 +305,9 @@ class EntityBinary(ClassifierModel):
                 logits = tf.nn.xw_plus_b(prediction_0, self.w_1, self.b_1)
             else:
                 # MLP for scoring encoded sentence
-                self.w_1 = tf.get_variable(name='w_1', shape=[feature_dim+self.inner_embed_dim, self._num_labels],
+                self.w_1 = tf.get_variable(name='w_1', shape=[feature_dim + self.inner_embed_dim, self._num_labels],
                                            # self.w_1 = tf.get_variable(name='w_1', shape=[1+self.inner_embed_dim, self._num_labels],
                                            initializer=tf.contrib.layers.xavier_initializer())
                 self.b_1 = tf.get_variable(name='b_1', initializer=tf.constant(0.0001, shape=[self._num_labels]))
                 logits = tf.nn.xw_plus_b(features, self.w_1, self.b_1)
             return logits
-

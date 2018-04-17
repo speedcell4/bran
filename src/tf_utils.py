@@ -94,11 +94,11 @@ def initialize_weights(shape, name, init_type, gain="1.0", divisor=1.0):
         else:
             m1 = divisor / shape[2]
             m2 = divisor / shape[3]
-            sigma = eps*m2
+            sigma = eps * m2
             array = np.random.normal(loc=0, scale=sigma, size=shape).astype('float32')
             for i in range(shape[2]):
                 for j in range(shape[3]):
-                    if int(i*m1) == int(j*m2):
+                    if int(i * m1) == int(j * m2):
                         array[0, middle, i, j] = m2
         return tf.get_variable(name, initializer=array)
     if init_type == "varscale":
@@ -117,7 +117,7 @@ def residual_layer(input, w, b, filter_width, dilation, nonlinearity, batch_norm
                    name, batch_size, max_sequence_len, activation, training):
     # if activation == "pre" (2): BN -> relu -> weight -> BN -> relu -> weight -> addition
     conv_in_bn = tf.contrib.layers.batch_norm(input, decay=0.995, scale=False, is_training=training, trainable=True) \
-                    if batch_norm and activation == 2 else input
+        if batch_norm and activation == 2 else input
     conv_in = apply_nonlinearity(conv_in_bn, nonlinearity) if activation == 2 else conv_in_bn
 
     conv = tf.nn.atrous_conv2d(
@@ -134,7 +134,7 @@ def residual_layer(input, w, b, filter_width, dilation, nonlinearity, batch_norm
 
     # if activation == "post" (1): weight -> BN -> relu -> weight -> BN -> addition -> relu
     conv_out_bn = tf.contrib.layers.batch_norm(conv_b, decay=0.995, scale=False, is_training=training, trainable=True) \
-                    if batch_norm and activation != 2 else conv_b
+        if batch_norm and activation != 2 else conv_b
     conv_out = apply_nonlinearity(conv_out_bn, nonlinearity) if activation != 2 else conv_out_bn
     # if activation == "none" (0): weight -> BN -> relu
     conv_shape = w.get_shape()
@@ -145,7 +145,8 @@ def residual_layer(input, w, b, filter_width, dilation, nonlinearity, batch_norm
         b_r = tf.get_variable("b_r_" + name, initializer=tf.constant(0.01, shape=[conv_shape[-1]]))
         input_projected = tf.nn.xw_plus_b(input, w_r, b_r, name="proj_r_" + name)
         # if len(output_shape) != 2:
-        input_projected = tf.reshape(input_projected, tf.stack([batch_size, 1, max_sequence_len, tf.to_int32(conv_shape[-1])]))
+        input_projected = tf.reshape(input_projected,
+                                     tf.stack([batch_size, 1, max_sequence_len, tf.to_int32(conv_shape[-1])]))
         return tf.add(input_projected, conv_out)
     else:
         return conv_out
@@ -156,16 +157,17 @@ def orthonormal_initializer(input_size, output_size):
     print(tf.get_variable_scope().name)
     I = np.eye(output_size)
     lr = .1
-    eps = .05/(output_size + input_size)
+    eps = .05 / (output_size + input_size)
     success = False
     tries = 0
     while not success and tries < 10:
         Q = np.random.randn(input_size, output_size) / np.sqrt(output_size)
         for i in xrange(100):
             QTQmI = Q.T.dot(Q) - I
-            loss = np.sum(QTQmI**2 / 2)
-            Q2 = Q**2
-            Q -= lr*Q.dot(QTQmI) / (np.abs(Q2 + Q2.sum(axis=0, keepdims=True) + Q2.sum(axis=1, keepdims=True) - 1) + eps)
+            loss = np.sum(QTQmI ** 2 / 2)
+            Q2 = Q ** 2
+            Q -= lr * Q.dot(QTQmI) / (
+                        np.abs(Q2 + Q2.sum(axis=0, keepdims=True) + Q2.sum(axis=1, keepdims=True) - 1) + eps)
             if np.max(Q) > 1e6 or loss > 1e6 or not np.isfinite(loss):
                 tries += 1
                 lr /= 2
@@ -182,8 +184,8 @@ def orthonormal_initializer(input_size, output_size):
 def calc_f_score(precision, recall, beta=1):
     if precision + recall <= 0:
         return 0.0
-    return (1+(beta**2)) * ((precision * recall) /
-                            (((beta**2)*precision) + recall))
+    return (1 + (beta ** 2)) * ((precision * recall) /
+                                (((beta ** 2) * precision) + recall))
 
 
 def load_pretrained_embeddings(str_id_map, embedding_file, dim, vocab_size):
@@ -196,7 +198,7 @@ def load_pretrained_embeddings(str_id_map, embedding_file, dim, vocab_size):
         with open(embedding_file, 'r') as f:
             for line in f.readlines():
                 key, value_str = line.strip().split(' ', 1)
-                if key not in str_id_map and key+'@' in str_id_map:
+                if key not in str_id_map and key + '@' in str_id_map:
                     key += '@'
                 if key in str_id_map:
                     preloaded_vector = [float(v) for v in value_str.split(' ')]
